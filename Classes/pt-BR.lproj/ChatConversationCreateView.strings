@@ -1,0 +1,15 @@
+
+/* Class = "UIButton"; accessibilityLabel = "Linphone contacts filter"; ObjectID = "8lQ-fv-INK"; */
+"8lQ-fv-INK.accessibilityLabel" = "Linphone contacts filter";
+
+/* Class = "UIView"; accessibilityLabel = "addedContacts"; ObjectID = "KRQ-Fm-3cQ"; */
+"KRQ-Fm-3cQ.accessibilityLabel" = "addedContacts";
+
+/* Class = "UIButton"; accessibilityLabel = "Back"; ObjectID = "fNt-yb-wsf"; */
+"fNt-yb-wsf.accessibilityLabel" = "Back";
+
+/* Class = "UIButton"; accessibilityLabel = "All contacts filter"; ObjectID = "r3z-SM-lMq"; */
+"r3z-SM-lMq.accessibilityLabel" = "All contacts filter";
+
+/* Class = "UIButton"; accessibilityLabel = "Back"; ObjectID = "rBc-dQ-eIj"; */
+"rBc-dQ-eIj.accessibilityLabel" = "Back";
