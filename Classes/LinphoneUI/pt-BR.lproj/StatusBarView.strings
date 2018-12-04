@@ -3,10 +3,10 @@
 "3Jg-EU-ajT.normalTitle" = "1234";
 
 /* Class = "UIButton"; accessibilityLabel = "Registration state"; ObjectID = "Mhg-P6-RfU"; */
-"Mhg-P6-RfU.accessibilityLabel" = "Registration state";
+"Mhg-P6-RfU.accessibilityLabel" = "Estado de registro";
 
 /* Class = "UIButton"; normalTitle = "Registered"; ObjectID = "Mhg-P6-RfU"; */
-"Mhg-P6-RfU.normalTitle" = "Registered";
+"Mhg-P6-RfU.normalTitle" = "Registrado";
 
 /* Class = "UIButton"; accessibilityLabel = "Side menu button"; ObjectID = "yg7-rx-XVv"; */
-"yg7-rx-XVv.accessibilityLabel" = "Side menu button";
+"yg7-rx-XVv.accessibilityLabel" = "Botão do menu lateral";
