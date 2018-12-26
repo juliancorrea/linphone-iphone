@@ -216,7 +216,8 @@
 				[self setCString:tname forKey:@"account_transport_preference"];
 			}
 
-			[self setBool:(linphone_proxy_config_get_route(proxy) != NULL) forKey:@"account_outbound_proxy_preference"];
+            //TASK 153 por padrão, "Outbound Proxy" desativado,
+//            [self setBool:(linphone_proxy_config_get_route(proxy) != NULL) forKey:@"account_outbound_proxy_preference"];
 			[self setBool:linphone_proxy_config_avpf_enabled(proxy) forKey:@"account_avpf_preference"];
 			[self setBool:linphone_proxy_config_register_enabled(proxy) forKey:@"account_is_enabled_preference"];
 			[self setBool:(linphone_core_get_default_proxy_config(LC) == proxy)

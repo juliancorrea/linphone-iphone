@@ -649,11 +649,53 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 	if (!linphone_core_video_supported(LC)) {
 		[hiddenKeys addObject:@"enable_video_preference"];
 	}
+    
+    //TASK 153 Em Configurações deixar a opção "Enable Video" desabilitada e ocultada
+    [hiddenKeys addObject:@"enable_video_preference"];
+    
+    //TASK 153 Em COnfigurações -> Audio deixar habilitados apenas od codecs PCMU, PCMA, ilbc e GSM, todos os outros ficam desabilitadas e ocultados
+    [hiddenKeys addObject:@"speex_16k_preference"];
+    [hiddenKeys addObject:@"speex_8k_preference"];
+    [hiddenKeys addObject:@"opus_preference"];
+    [hiddenKeys addObject:@"silk_24k_preference"];
+    [hiddenKeys addObject:@"silk_16k_preference"];
+    [hiddenKeys addObject:@"aaceld_16k_preference"];
+    [hiddenKeys addObject:@"aaceld_22k_preference"];
+    [hiddenKeys addObject:@"aaceld_32k_preference"];
+    [hiddenKeys addObject:@"aaceld_44k_preference"];
+    [hiddenKeys addObject:@"aaceld_48k_preference"];
+    [hiddenKeys addObject:@"amr_preference"];
+    [hiddenKeys addObject:@"bv16_preference"];
+    [hiddenKeys addObject:@"g722_preference"];
+    [hiddenKeys addObject:@"g729_preference"];
+    [hiddenKeys addObject:@"isac_preference"];
+    [hiddenKeys addObject:@"codec2_preference"];
+    
+    [hiddenKeys addObject:@"audio_advanced_group"];
+    [hiddenKeys addObject:@"playback_gain_preference"];
+    [hiddenKeys addObject:@"microphone_gain_preference"];
+    [hiddenKeys addObject:@"audio_codec_bitrate_limit_preference"];
+    [hiddenKeys addObject:@"voiceproc_preference"];
+    [hiddenKeys addObject:@"eq_active"];
 
-	if (!linphone_core_video_display_enabled(LC)) {
-		[hiddenKeys addObject:@"video_menu"];
-	}
+    //TASK 153 Em COnfiguraçoes -> Video deixar tudo desabilitado e ocultar o menu do Video
+    [hiddenKeys addObject:@"video_menu"];
+//    if (!linphone_core_video_display_enabled(LC)) {
+//        [hiddenKeys addObject:@"video_menu"];
+//    }
 
+    //TASK 153 Em COnfigurações -> Chat deixar a opção "Server URL" em Branco e ocultar o menu Chat
+    [hiddenKeys addObject:@"message_menu"];
+    
+    //TASK 153 Em Configurações -> Avançadas remover os campos dentro de "Primary Account"
+    [hiddenKeys addObject:@"advanced_group"];
+    [hiddenKeys addObject:@"primary_displayname_preference"];
+    [hiddenKeys addObject:@"primary_username_preference"];
+    
+    //TASK 153 AVPF desativado e ocultado,"Country code prefix" ocultado
+    [hiddenKeys addObject:@"account_prefix_preference"];
+    [hiddenKeys addObject:@"account_avpf_preference"];
+    
 	if (!linphone_core_get_video_preset(LC) || strcmp(linphone_core_get_video_preset(LC), "custom") != 0) {
 		[hiddenKeys addObject:@"video_preferred_fps_preference"];
 		[hiddenKeys addObject:@"download_bandwidth_preference"];

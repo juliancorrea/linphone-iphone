@@ -133,6 +133,8 @@
 			<string>Primary account</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
+			<key>Key</key>
+			<string>advanced_group</string>
 		</dict>
 		<dict>
 			<key>AutocapitalizationType</key>

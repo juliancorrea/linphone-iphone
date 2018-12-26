@@ -106,4 +106,7 @@
 - (IBAction)onCountryCodeFieldChange:(id)sender;
 - (IBAction)onCountryCodeFieldEnd:(id)sender;
 - (IBAction)onPhoneNumberDisclosureClick:(id)sender;
+
+//TASK 153 O campo domain deve aceitar apenas dominios que contenham "vpabx.com.br" e "virtualpabxip.com.br"
+- (void) displayAssistantConfigurationDomainError;
 @end

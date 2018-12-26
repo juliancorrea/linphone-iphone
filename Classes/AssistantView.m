@@ -375,7 +375,8 @@ static UICompositeViewDescription *compositeDescription = nil;
 + (NSString *)errorForLinphoneAccountCreatorDomainStatus:(LinphoneAccountCreatorDomainStatus)status {
 	switch (status) {
 		case LinphoneAccountCreatorDomainInvalid: /**< Domain invalid */
-			return NSLocalizedString(@"Invalid.", nil);
+			//TASK 153 O campo domain deve aceitar apenas dominios que contenham "vpabx.com.br" e "virtualpabxip.com.br"
+            return NSLocalizedString(@"Invalid Domain", nil);
 		default:
 			return NSLocalizedString(@"Unknown error, please try again later.", nil);
 	}
@@ -440,6 +441,24 @@ static UICompositeViewDescription *compositeDescription = nil;
 	return;
 }
 
+//TASK 153 O campo domain deve aceitar apenas dominios que contenham "vpabx.com.br" e "virtualpabxip.com.br"
+- (void)displayAssistantConfigurationDomainError {
+    UIAlertController *errView = [UIAlertController
+                                  alertControllerWithTitle:NSLocalizedString(@"Invalid.", nil)
+                                  message:NSLocalizedString(@"Invalid Domain", nil)
+                                  preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *defaultAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"Cancel", nil)
+                                                            style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction *action){
+                                                          }];
+    
+    [errView addAction:defaultAction];
+    [self presentViewController:errView animated:YES completion:nil];
+    _waitView.hidden = YES;
+    return;
+}
+
 #pragma mark - UI update
 
 - (void)changeView:(UIView *)view back:(BOOL)back animation:(BOOL)animation {
@@ -453,6 +472,8 @@ static UICompositeViewDescription *compositeDescription = nil;
 		BOOL show_extern = ![LinphoneManager.instance lpConfigBoolForKey:@"hide_assistant_custom_account"];
 		BOOL show_new = ![LinphoneManager.instance lpConfigBoolForKey:@"hide_assistant_create_account"];
 		BOOL show_fetch_remote = ![LinphoneManager.instance lpConfigBoolForKey:@"show_remote_provisioning_in_assistant"];
+        //TASK 153 Ocultar menu "Create Account" e "Use LInphone Account"
+        BOOL show_use_linphone = ![LinphoneManager.instance lpConfigBoolForKey:@"hide_assistant_use_linphone_account"];
 		
 		if (!placement_done) {
 			// visibility
@@ -473,7 +494,11 @@ static UICompositeViewDescription *compositeDescription = nil;
 			}
 			placement_done = YES;
 		}
-		if (!show_extern && !show_logo) {
+        //TASK 153 Ocultar menu "Create Account" e "Use LInphone Account"
+        if(!show_use_linphone && show_extern){
+            view = _loginView;
+        }
+		else if (!show_extern && !show_logo) {
 			// no option to create or specify a custom account: go to connect view directly
 			view = _linphoneLoginView;
 		}
@@ -611,7 +636,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 #if DEBUG
 		UIAssistantTextField *atf =
 			(UIAssistantTextField *)[self findView:ViewElement_Domain inView:view ofType:UIAssistantTextField.class];
-		atf.text = @"test.linphone.org";
+		atf.text = @"vpabx.com.br";//TASK 153 O campo domain deve aceitar apenas dominios que contenham "vpabx.com.br" e "virtualpabxip.com.br"
 #endif
 	}
 	phone_number_length = 0;
@@ -719,18 +744,29 @@ static UICompositeViewDescription *compositeDescription = nil;
 			   return s != LinphoneAccountCreatorEmailStatusOk;
 			 }];
 
-	UIAssistantTextField *domain = [self findTextField:ViewElement_Domain];
-	[domain showError:[AssistantView errorForLinphoneAccountCreatorDomainStatus:LinphoneAccountCreatorDomainInvalid]
-				 when:^BOOL(NSString *inputEntry) {
-				   if (![inputEntry isEqualToString:@""]) {
-					   LinphoneAccountCreatorDomainStatus s =
-						   linphone_account_creator_set_domain(account_creator, inputEntry.UTF8String);
-					   domain.errorLabel.text = [AssistantView errorForLinphoneAccountCreatorDomainStatus:s];
-					   return s != LinphoneAccountCreatorDomainOk;
-				   }
-				   return true;
-				 }];
+    UIAssistantTextField *domain = [self findTextField:ViewElement_Domain];
+//    [domain showError:[AssistantView errorForLinphoneAccountCreatorDomainStatus:LinphoneAccountCreatorDomainInvalid]
+//                 when:^BOOL(NSString *inputEntry) {
+//                   if (![inputEntry isEqualToString:@""]) {
+//                       LinphoneAccountCreatorDomainStatus s =
+//                           linphone_account_creator_set_domain(account_creator, inputEntry.UTF8String);
+//                       domain.errorLabel.text = [AssistantView errorForLinphoneAccountCreatorDomainStatus:s];
+//                       return s != LinphoneAccountCreatorDomainOk;
+//                   }
+//                   return true;
+//                 }];
 
+    //TASK 153 O campo domain deve aceitar apenas dominios que contenham "vpabx.com.br" e "virtualpabxip.com.br"
+    [domain showError:[AssistantView errorForLinphoneAccountCreatorDomainStatus:LinphoneAccountCreatorDomainInvalid]
+                 when:^BOOL(NSString *inputEntry) {
+                     if ([self isValidDomain:inputEntry]) {
+                         LinphoneAccountCreatorDomainStatus s = linphone_account_creator_set_domain(account_creator, inputEntry.UTF8String);
+                         return s != LinphoneAccountCreatorEmailStatusOk;
+                     }
+                     return true;
+                 }];
+
+    
 	UIAssistantTextField *url = [self findTextField:ViewElement_URL];
 	[url showError:NSLocalizedString(@"Invalid remote provisioning URL", nil)
 			  when:^BOOL(NSString *inputEntry) {
@@ -764,6 +800,11 @@ static UICompositeViewDescription *compositeDescription = nil;
 	[self shouldEnableNextButton];
 
 }
+
+- (BOOL) isValidDomain:(NSString*) inputEntry{
+    return [inputEntry isEqualToString:@"vpabx.com.br"] || [inputEntry isEqualToString:@"virtualpabxip.com.br"];
+}
+
 
 - (void)shouldEnableNextButton {
 	BOOL invalidInputs = NO;
@@ -1328,68 +1369,75 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
 }
 
 - (IBAction)onLoginClick:(id)sender {
-	ONCLICKBUTTON(sender, 100, {
-		_waitView.hidden = NO;
-		NSString *domain = [self findTextField:ViewElement_Domain].text;
-		NSString *username = [self findTextField:ViewElement_Username].text;
-		NSString *displayName = [self findTextField:ViewElement_DisplayName].text;
-		NSString *pwd = [self findTextField:ViewElement_Password].text;
-		LinphoneProxyConfig *config = linphone_core_create_proxy_config(LC);
-		LinphoneAddress *addr = linphone_address_new(NULL);
-		LinphoneAddress *tmpAddr = linphone_address_new([NSString stringWithFormat:@"sip:%@",domain].UTF8String);
-		linphone_address_set_username(addr, username.UTF8String);
-		linphone_address_set_port(addr, linphone_address_get_port(tmpAddr));
-		linphone_address_set_domain(addr, linphone_address_get_domain(tmpAddr));
-		if (displayName && ![displayName isEqualToString:@""]) {
-			linphone_address_set_display_name(addr, displayName.UTF8String);
-		}
-		linphone_proxy_config_set_identity_address(config, addr);
-		// set transport
-		UISegmentedControl *transports = (UISegmentedControl *)[self findView:ViewElement_Transport
-																	   inView:self.contentView
-																	   ofType:UISegmentedControl.class];
-		if (transports) {
-			NSString *type = [transports titleForSegmentAtIndex:[transports selectedSegmentIndex]];
-			linphone_proxy_config_set_route(
-				config,
-				[NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
-					.UTF8String);
-			linphone_proxy_config_set_server_addr(
-				config,
-				[NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
-					.UTF8String);
-		}
+    //TASK 153 O campo domain deve aceitar apenas dominios que contenham "vpabx.com.br" e "virtualpabxip.com.br"
+    NSString *domain = [self findTextField:ViewElement_Domain].text;
+    if(![self isValidDomain:domain]){
+        [self displayAssistantConfigurationDomainError];
+    }
+    else {
+        ONCLICKBUTTON(sender, 100, {
+            _waitView.hidden = NO;
+            NSString *domain = [self findTextField:ViewElement_Domain].text;
+            NSString *username = [self findTextField:ViewElement_Username].text;
+            NSString *displayName = [self findTextField:ViewElement_DisplayName].text;
+            NSString *pwd = [self findTextField:ViewElement_Password].text;
+            LinphoneProxyConfig *config = linphone_core_create_proxy_config(LC);
+            LinphoneAddress *addr = linphone_address_new(NULL);
+            LinphoneAddress *tmpAddr = linphone_address_new([NSString stringWithFormat:@"sip:%@",domain].UTF8String);
+            linphone_address_set_username(addr, username.UTF8String);
+            linphone_address_set_port(addr, linphone_address_get_port(tmpAddr));
+            linphone_address_set_domain(addr, linphone_address_get_domain(tmpAddr));
+            if (displayName && ![displayName isEqualToString:@""]) {
+                linphone_address_set_display_name(addr, displayName.UTF8String);
+            }
+            linphone_proxy_config_set_identity_address(config, addr);
+            // set transport
+            UISegmentedControl *transports = (UISegmentedControl *)[self findView:ViewElement_Transport
+                                                                           inView:self.contentView
+                                                                           ofType:UISegmentedControl.class];
+            if (transports) {
+                NSString *type = [transports titleForSegmentAtIndex:[transports selectedSegmentIndex]];
+                linphone_proxy_config_set_route(
+                    config,
+                    [NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
+                        .UTF8String);
+                linphone_proxy_config_set_server_addr(
+                    config,
+                    [NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
+                        .UTF8String);
+            }
 
-		linphone_proxy_config_enable_publish(config, FALSE);
-		linphone_proxy_config_enable_register(config, TRUE);
+            linphone_proxy_config_enable_publish(config, FALSE);
+            linphone_proxy_config_enable_register(config, TRUE);
 
-		LinphoneAuthInfo *info =
-			linphone_auth_info_new(linphone_address_get_username(addr), // username
-								   NULL,								// user id
-								   pwd.UTF8String,						// passwd
-								   NULL,								// ha1
-								   linphone_address_get_domain(addr),   // realm - assumed to be domain
-								   linphone_address_get_domain(addr)	// domain
-								   );
-		linphone_core_add_auth_info(LC, info);
-		linphone_address_unref(addr);
-		linphone_address_unref(tmpAddr);
+            LinphoneAuthInfo *info =
+                linphone_auth_info_new(linphone_address_get_username(addr), // username
+                                       NULL,								// user id
+                                       pwd.UTF8String,						// passwd
+                                       NULL,								// ha1
+                                       linphone_address_get_domain(addr),   // realm - assumed to be domain
+                                       linphone_address_get_domain(addr)	// domain
+                                       );
+            linphone_core_add_auth_info(LC, info);
+            linphone_address_unref(addr);
+            linphone_address_unref(tmpAddr);
 
-		if (config) {
-			[[LinphoneManager instance] configurePushTokenForProxyConfig:config];
-			if (linphone_core_add_proxy_config(LC, config) != -1) {
-				linphone_core_set_default_proxy_config(LC, config);
-				// reload address book to prepend proxy config domain to contacts' phone number
-				// todo: STOP doing that!
-				[[LinphoneManager.instance fastAddressBook] fetchContactsInBackGroundThread];
-                [PhoneMainView.instance changeCurrentView:DialerView.compositeViewDescription];
-			} else {
-			  [self displayAssistantConfigurationError];
-			}
-		} else {
-		  [self displayAssistantConfigurationError];
-		}
-	});
+            if (config) {
+                [[LinphoneManager instance] configurePushTokenForProxyConfig:config];
+                if (linphone_core_add_proxy_config(LC, config) != -1) {
+                    linphone_core_set_default_proxy_config(LC, config);
+                    // reload address book to prepend proxy config domain to contacts' phone number
+                    // todo: STOP doing that!
+                    [[LinphoneManager.instance fastAddressBook] fetchContactsInBackGroundThread];
+                    [PhoneMainView.instance changeCurrentView:DialerView.compositeViewDescription];
+                } else {
+                  [self displayAssistantConfigurationError];
+                }
+            } else {
+              [self displayAssistantConfigurationError];
+            }
+        });
+    }
 }
 
 - (IBAction)onRemoteProvisioningLoginClick:(id)sender {
