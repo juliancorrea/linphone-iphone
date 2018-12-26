@@ -497,7 +497,11 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 	} else if ([@"account_mandatory_advanced_preference" compare:notif.object] == NSOrderedSame) {
 		removeFromHiddenKeys = [[notif.userInfo objectForKey:@"account_mandatory_advanced_preference"] boolValue];
 		for (NSString *key in settingsStore->dict) {
-			if (([key hasPrefix:@"account_"]) && (![key hasPrefix:@"account_mandatory_"])) {
+			if (([key hasPrefix:@"account_"]) && (![key hasPrefix:@"account_mandatory_"])
+                //TASK 153 AVPF desativado e ocultado,"Country code prefix" ocultado
+                && ![key hasPrefix:@"account_prefix"]
+                && ![key hasPrefix:@"account_avpf"]
+                ) {
 				[keys addObject:key];
 			}
 		}
@@ -692,9 +696,11 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
     [hiddenKeys addObject:@"primary_displayname_preference"];
     [hiddenKeys addObject:@"primary_username_preference"];
     
-    //TASK 153 AVPF desativado e ocultado,"Country code prefix" ocultado
-    [hiddenKeys addObject:@"account_prefix_preference"];
+    //TASK 153 AVPF desativado e ocultado, "Country code prefix" ocultado  
     [hiddenKeys addObject:@"account_avpf_preference"];
+    [hiddenKeys addObject:@"account_prefix_preference"];
+    
+    
     
 	if (!linphone_core_get_video_preset(LC) || strcmp(linphone_core_get_video_preset(LC), "custom") != 0) {
 		[hiddenKeys addObject:@"video_preferred_fps_preference"];

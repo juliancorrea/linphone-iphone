@@ -226,7 +226,7 @@
 			<key>Title</key>
 			<string>AVPF</string>
 			<key>DefaultValue</key>
-			<true/>
+			<false/>
 			<key>Key</key>
 			<string>account_avpf_preference</string>
 			<key>Type</key>

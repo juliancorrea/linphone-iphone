@@ -725,8 +725,9 @@ CGRect IASKCGRectSwap(CGRect rect);
             // load the view controll back in to push it
             targetViewController = [[self.viewList objectAtIndex:kIASKSpecifierChildViewControllerIndex] objectForKey:@"viewController"];
         }
-		targetViewController.file = specifier.file;
         targetViewController.hiddenKeys = self.hiddenKeys;
+        targetViewController.settingsReader.hiddenKeys = self.hiddenKeys;
+        targetViewController.file = specifier.file;
 		targetViewController.title = specifier.title;
         targetViewController.showCreditsFooter = NO;
         [[self navigationController] pushViewController:targetViewController animated:YES];
