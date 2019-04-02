@@ -3555,7 +3555,7 @@
 				LastUpgradeCheck = 0900;
 				TargetAttributes = {
 					1D6058900D05DD3D006BFB54 = {
-						DevelopmentTeam = NHVT5T45A4;
+						DevelopmentTeam = 5WV9N6STUR;
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.ApplicationGroups.iOS = {
@@ -5229,7 +5229,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = NHVT5T45A4;
+				DEVELOPMENT_TEAM = 5WV9N6STUR;
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/liblinphone-sdk/x86_64-apple-darwin.ios/lib",
@@ -5262,7 +5262,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5335,7 +5335,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = NHVT5T45A4;
+				DEVELOPMENT_TEAM = 5WV9N6STUR;
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/liblinphone-sdk/x86_64-apple-darwin.ios/lib",
@@ -5367,7 +5367,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5440,7 +5440,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = NHVT5T45A4;
+				DEVELOPMENT_TEAM = 5WV9N6STUR;
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/liblinphone-sdk/x86_64-apple-darwin.ios/lib",
@@ -5472,7 +5472,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5545,7 +5545,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = NHVT5T45A4;
+				DEVELOPMENT_TEAM = 5WV9N6STUR;
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/liblinphone-sdk/x86_64-apple-darwin.ios/lib",
@@ -5577,7 +5577,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
