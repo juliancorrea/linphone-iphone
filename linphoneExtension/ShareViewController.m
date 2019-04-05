@@ -10,7 +10,7 @@
 @interface ShareViewController ()
 
 @end
-static NSString* groupName = @"group.belledonne-communications.linphone";
+static NSString* groupName = @"group.lytux-communications.linphone";
 @implementation ShareViewController
 
 - (BOOL)isContentValid {

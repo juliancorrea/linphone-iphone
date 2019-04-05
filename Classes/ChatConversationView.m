@@ -26,7 +26,7 @@
 #import "UIChatBubbleTextCell.h"
 
 @implementation ChatConversationView
-static NSString* groupName = @"group.belledonne-communications.linphone";
+static NSString* groupName = @"group.lytux-communications.linphone";
 
 #pragma mark - Lifecycle Functions
 
