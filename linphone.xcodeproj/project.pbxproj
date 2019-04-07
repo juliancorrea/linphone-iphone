@@ -737,6 +737,7 @@
 		8CF25D961F9F336100BEA0C1 /* check_unselected.png in Resources */ = {isa = PBXBuildFile; fileRef = 8CF25D941F9F336100BEA0C1 /* check_unselected.png */; };
 		8CF25D9D1F9F76BD00BEA0C1 /* chat_group_informations.png in Resources */ = {isa = PBXBuildFile; fileRef = 8CF25D9B1F9F76BC00BEA0C1 /* chat_group_informations.png */; };
 		8CF25D9E1F9F76BD00BEA0C1 /* chat_group_informations@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 8CF25D9C1F9F76BD00BEA0C1 /* chat_group_informations@2x.png */; };
+		B9F29424225A542A00DBC84B /* linphone-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B9F29423225A542A00DBC84B /* linphone-Info.plist */; };
 		C90FAA7915AF54E6002091CB /* HistoryDetailsView.m in Sources */ = {isa = PBXBuildFile; fileRef = C90FAA7715AF54E6002091CB /* HistoryDetailsView.m */; };
 		CF15F21E20E4F9A3008B1DE6 /* UIImageViewDeletable.m in Sources */ = {isa = PBXBuildFile; fileRef = CF15F21C20E4F9A3008B1DE6 /* UIImageViewDeletable.m */; };
 		CF15F21F20E4F9A3008B1DE6 /* UIImageViewDeletable.xib in Resources */ = {isa = PBXBuildFile; fileRef = CF15F21D20E4F9A3008B1DE6 /* UIImageViewDeletable.xib */; };
@@ -1887,6 +1888,7 @@
 		B9C766D021B6010E00BD6CF1 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Main_iPhone.strings"; sourceTree = "<group>"; };
 		B9C766D221B6011000BD6CF1 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		B9C766D321B6011500BD6CF1 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		B9F29423225A542A00DBC84B /* linphone-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "linphone-Info.plist"; sourceTree = "<group>"; };
 		C90FAA7615AF54E6002091CB /* HistoryDetailsView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HistoryDetailsView.h; sourceTree = "<group>"; };
 		C90FAA7715AF54E6002091CB /* HistoryDetailsView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HistoryDetailsView.m; sourceTree = "<group>"; };
 		C9B3A6FD15B485DB006F52EE /* Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Utils.h; path = Utils/Utils.h; sourceTree = "<group>"; };
@@ -2472,6 +2474,7 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				B9F29423225A542A00DBC84B /* linphone-Info.plist */,
 				15F12E672174AB4B00B7DE49 /* mediastreamer2.framework */,
 				8C23BCB71D82AAC3005F19BB /* linphone.entitlements */,
 				080E96DDFE201D6D7F000001 /* Classes */,
@@ -4019,6 +4022,7 @@
 				633FEEF01D3CD55A0014B822 /* numpad_hash_over~ipad@2x.png in Resources */,
 				63AADBF81B6A0FF200AA16FD /* linphonerc~ipad in Resources */,
 				633FEE8F1D3CD55A0014B822 /* list_details_default@2x.png in Resources */,
+				B9F29424225A542A00DBC84B /* linphone-Info.plist in Resources */,
 				633FEE5E1D3CD5590014B822 /* edit_list_default.png in Resources */,
 				633FEDB11D3CD5590014B822 /* call_add_disabled@2x.png in Resources */,
 				633FEDB21D3CD5590014B822 /* call_alt_back_default.png in Resources */,
@@ -5262,7 +5266,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5367,7 +5371,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5472,7 +5476,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5577,7 +5581,7 @@
 					"-DENABLE_QRCODE=FALSE",
 				);
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone;
 				PRODUCT_NAME = linphone;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5633,7 +5637,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestChatrooms;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestChatrooms;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5679,7 +5683,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestChatrooms;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestChatrooms;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5726,7 +5730,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestChatrooms;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestChatrooms;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5773,7 +5777,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestChatrooms;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestChatrooms;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5820,7 +5824,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.richNotifications;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.richNotifications;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5861,7 +5865,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.richNotifications;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.richNotifications;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5903,7 +5907,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.richNotifications;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.richNotifications;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5945,7 +5949,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.richNotifications;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.richNotifications;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5997,7 +6001,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestCalls;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestCalls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6043,7 +6047,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestCalls;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestCalls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6090,7 +6094,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestCalls;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestCalls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6137,7 +6141,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.widget.latestCalls;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.widgetlatestCalls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6182,7 +6186,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.linphoneExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.linphoneExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SKIP_INSTALL = YES;
@@ -6220,7 +6224,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.linphoneExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.linphoneExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -6258,7 +6262,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.linphoneExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.linphoneExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SKIP_INSTALL = YES;
@@ -6297,7 +6301,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.phone.linphoneExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = org.lytux.linphone.linphoneExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SKIP_INSTALL = YES;

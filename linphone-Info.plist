@@ -77,9 +77,9 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>3</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
+	<false/>
 	<key>ITSEncryptionExportComplianceCode</key>
 	<string>b5cb085f-772a-4a4f-8c77-5d1332b1f93f</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -112,7 +112,7 @@
 		</dict>
 	</array>
 	<key>UIApplicationShortcutWidget</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER).widget.latestChatrooms</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER).widgetlatestChatrooms</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
