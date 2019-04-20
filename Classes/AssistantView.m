@@ -802,7 +802,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 }
 
 - (BOOL) isValidDomain:(NSString*) inputEntry{
-    return [inputEntry isEqualToString:@"vpabx.com.br"] || [inputEntry isEqualToString:@"virtualpabxip.com.br"];
+    return [inputEntry hasSuffix:@"vpabx.com.br"] || [inputEntry hasSuffix:@"virtualpabxip.com.br"];
 }
 
 
