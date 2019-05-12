@@ -57,20 +57,27 @@
 		[ContactDisplay setDisplayNameLabel:_nameLabel forAddress:addr];
 		_addressLabel.text = [NSString stringWithUTF8String:linphone_proxy_config_get_identity(default_proxy)];
 		_presenceImage.image = [StatusBarView imageForState:linphone_proxy_config_get_state(default_proxy)];
-	} else {
-		_nameLabel.text = linphone_core_get_proxy_config_list(LC) ? NSLocalizedString(@"No default account", nil) : NSLocalizedString(@"No account", nil);
-		// display direct IP:port address so that we can be reached
-		LinphoneAddress *addr = linphone_core_get_primary_contact_parsed(LC);
-		if (addr) {
-			char *as_string = linphone_address_as_string(addr);
-			_addressLabel.text = [NSString stringWithFormat:@"%s", as_string];
-			ms_free(as_string);
-			linphone_address_destroy(addr);
-		} else {
-			_addressLabel.text = NSLocalizedString(@"No address", nil);
-		}
-		_presenceImage.image = nil;
 	}
+    else {
+        _addressLabel.text = NSLocalizedString(@"No address", nil);
+        _nameLabel.text = linphone_core_get_proxy_config_list(LC) ? NSLocalizedString(@"No default account", nil) : NSLocalizedString(@"No account", nil);
+    }
+    
+    //TASK 150  15 - Quando não existe conta configurada no menu esquerdo ele fica como "Linphone IPhone" <sip:linphone.phone@192.168.1.114:52913>, neste caso precisamos ocultar essa informação
+//    else {
+//        _nameLabel.text = linphone_core_get_proxy_config_list(LC) ? NSLocalizedString(@"No default account", nil) : NSLocalizedString(@"No account", nil);
+//        // display direct IP:port address so that we can be reached
+//        LinphoneAddress *addr = linphone_core_get_primary_contact_parsed(LC);
+//        if (addr) {
+//            char *as_string = linphone_address_as_string(addr);
+//            _addressLabel.text = [NSString stringWithFormat:@"%s", as_string];
+//            ms_free(as_string);
+//            linphone_address_destroy(addr);
+//        } else {
+//            _addressLabel.text = NSLocalizedString(@"No address", nil);
+//        }
+//        _presenceImage.image = nil;
+//    }
 	_avatarImage.image = [LinphoneUtils selfAvatar];
 }
 

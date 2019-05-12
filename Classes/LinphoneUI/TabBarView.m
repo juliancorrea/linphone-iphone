@@ -139,6 +139,11 @@
 					   _selectedButtonImage.frame = selectedNewFrame;
 
 					 }];
+    
+    //TASK 150 _  16 - Precisamos ocultar o botão do chat que está ao lado do botão do teclado
+    _chatButton.hidden = YES;
+    
+    
 }
 
 #pragma mark - Action Functions

@@ -701,6 +701,9 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
     [hiddenKeys addObject:@"account_prefix_preference"];
     
     
+    //TASK 150 - 8 - Em Avançado ocultar o sub-menu "Presence -> PENDENTE
+    [hiddenKeys addObject:@"use_rls_presence"];
+    [hiddenKeys addObject:@"presence"];
     
 	if (!linphone_core_get_video_preset(LC) || strcmp(linphone_core_get_video_preset(LC), "custom") != 0) {
 		[hiddenKeys addObject:@"video_preferred_fps_preference"];
