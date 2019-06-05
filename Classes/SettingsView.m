@@ -519,6 +519,10 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 			[hiddenKeys addObject:key];
 	}
 
+    [hiddenKeys addObject:@"account_proxy_preference"];
+    [hiddenKeys addObject:@"account_substitute_+_by_00_preference"];
+    [hiddenKeys addObject:@"account_mandatory_change_password"];
+    
 	[_settingsController setHiddenKeys:hiddenKeys animated:TRUE];
 }
 
