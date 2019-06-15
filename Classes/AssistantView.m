@@ -817,8 +817,9 @@ static UICompositeViewDescription *compositeDescription = nil;
 	}
 	
 	UISwitch *emailSwitch = (UISwitch *)[self findView:ViewElement_EmailFormView inView:self.contentView ofType:UISwitch.class];
+    BOOL isPasswordEmpty = [self findTextField:ViewElement_Password].text.length == 0;
 	if (!emailSwitch.isOn) {
-		[self findButton:ViewElement_NextButton].enabled = !invalidInputs;
+		[self findButton:ViewElement_NextButton].enabled = !invalidInputs && !isPasswordEmpty;
 	}
 }
 
