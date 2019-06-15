@@ -77,7 +77,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>7</string>
+	<string>9</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>ITSEncryptionExportComplianceCode</key>
@@ -98,8 +98,6 @@
 	<string>Share photos with your friends and customize avatars</string>
 	<key>NSVoIPUsageDescription</key>
 	<string>Make audio/video calls</string>
-	<key>UIApplicationExitsOnSuspend</key>
-	<false/>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>

@@ -430,17 +430,31 @@ static UICompositeViewDescription *compositeDescription = nil;
 }
 
 - (void)onOneLongClick:(id)sender {
-	LinphoneManager *lm = LinphoneManager.instance;
-	NSString *voiceMail = [lm lpConfigStringForKey:@"voice_mail_uri"];
-	LinphoneAddress *addr = [LinphoneUtils normalizeSipOrPhoneAddress:voiceMail];
-	if (addr) {
-		linphone_address_set_display_name(addr, NSLocalizedString(@"Voice mail", nil).UTF8String);
-		[lm call:addr];
-		linphone_address_destroy(addr);
-	} else {
-		LOGE(@"Cannot call voice mail because URI not set or invalid!");
-	}
-	linphone_core_stop_dtmf(LC);
+    LinphoneManager *lm = LinphoneManager.instance;
+    NSString *voiceMail = [lm lpConfigStringForKey:@"voice_mail_uri"];
+    // Strips out all invalid characters the user might type in
+    NSString *condensedPhoneNumber = [[voiceMail componentsSeparatedByCharactersInSet:
+                                       [[NSCharacterSet characterSetWithCharactersInString:@"*0123456789"]
+                                        invertedSet]]
+                                      componentsJoinedByString:@""];
+    voiceMail = condensedPhoneNumber;
+    //END of striping out invalid characters
+    LinphoneAddress *addr = [LinphoneUtils normalizeSipOrPhoneAddress:voiceMail];
+    
+    if (addr) {
+        linphone_address_set_display_name(addr, NSLocalizedString(@"Voice mail", nil).UTF8String);
+        [lm call:addr];
+        linphone_address_destroy(addr);
+    } else {
+        //Hard coding an asterisk default voicemail box Star code if linphone or user has a null value for voicemail and forces the previous address check.
+        NSString *voiceMail = @"*98";
+        LinphoneAddress *addr = [LinphoneUtils normalizeSipOrPhoneAddress:voiceMail];
+        linphone_address_set_display_name(addr, NSLocalizedString(@"Voice mail", nil).UTF8String);
+        [lm call:addr];
+        linphone_address_destroy(addr);
+        //LOGE(@"Cannot call voice mail because URI not set or invalid!");
+    }
+    linphone_core_stop_dtmf(LC);
 }
 
 - (void)dismissKeyboards {

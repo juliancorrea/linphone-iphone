@@ -150,7 +150,7 @@
 
 	// default values
 	{
-		[self setBool:NO forKey:@"account_pushnotification_preference"];
+		[self setBool:YES forKey:@"account_pushnotification_preference"];
 		[self setObject:@"" forKey:@"account_mandatory_username_preference"];
 		[self setObject:@"" forKey:@"account_mandatory_domain_preference"];
 		[self setCString:"" forKey:@"account_display_name_preference"];
@@ -227,7 +227,7 @@
 				LC, NULL, [self stringForKey:@"account_mandatory_username_preference"].UTF8String,
 				[self stringForKey:@"account_mandatory_domain_preference"].UTF8String);
 			if (ai) {
-				[self setCString:linphone_auth_info_get_userid(ai) forKey:@"account_userid_preference"];
+				[self setCString:linphone_address_get_username(identity_addr) forKey:@"account_userid_preference"];
 				[self setCString:linphone_auth_info_get_passwd(ai) forKey:@"account_mandatory_password_preference"];
 				// hidden but useful if provisioned
 				[self setCString:linphone_auth_info_get_ha1(ai) forKey:@"ha1_preference"];
