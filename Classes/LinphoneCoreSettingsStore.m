@@ -169,6 +169,8 @@
 		[self setBool:NO forKey:@"account_substitute_+_by_00_preference"];
 		[self setBool:NO forKey:@"account_ice_preference"];
 		[self setCString:"" forKey:@"account_stun_preference"];
+        [self setBool:YES forKey:@"account_mandatory_advanced_preference"];
+        
 	}
 
 	if (proxies) {
@@ -371,7 +373,8 @@
 			else
 				[self setObject:[NSString stringWithFormat:@"%d", minPort] forKey:@"video_port_preference"];
 		}
-		[self setBool:linphone_core_ipv6_enabled(LC) forKey:@"use_ipv6"];
+
+        [self setBool:linphone_core_ipv6_enabled(LC) forKey:@"use_ipv6"];
 		LinphoneMediaEncryption menc = linphone_core_get_media_encryption(LC);
 		const char *val;
 		switch (menc) {
@@ -897,8 +900,16 @@
 			LinphoneAddress *rls_addr = linphone_address_new(rls_uri.UTF8String);
 			const char *rls_domain = linphone_address_get_domain(rls_addr);
 			const MSList *proxies = linphone_core_get_proxy_config_list(LC);
-			if (!proxies) // Enable it if no proxy config for first launch of app
+            if (!proxies){ // Enable it if no proxy config for first launch of app
 				[self setInteger:1 forKey:@"use_rls_presence"];
+                //TASK 158
+                //Seta ICE e ipv6 como nao configurado no primeiro boot
+                [self setInteger:0 forKey:@"ice_preference"];
+                [self setInteger:0 forKey:@"account_ice_preference"];
+                [self setBool:NO forKey:@"use_ipv6"];
+                //Seta Mais Opç˜pes habilitado por padrão no primeiro boot
+                [self setBool:YES forKey:@"account_mandatory_advanced_preference"];
+            }
 			else {
 				while (proxies) {
 					const char *proxy_domain = linphone_proxy_config_get_domain(proxies->data);
