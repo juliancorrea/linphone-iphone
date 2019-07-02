@@ -1814,7 +1814,12 @@ void networkReachabilityCallBack(SCNetworkReachabilityRef target, SCNetworkReach
 											UIDevice.currentDevice.systemVersion]];
 	device = [device stringByReplacingOccurrencesOfString:@"," withString:@"."];
 	device = [device stringByReplacingOccurrencesOfString:@" " withString:@"."];
-	linphone_core_set_user_agent(theLinphoneCore, device.UTF8String, LINPHONE_IOS_VERSION);
+    
+    NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+    NSString *build = [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString *)kCFBundleVersionKey];
+    
+    const char *cString = [[NSString stringWithFormat:@"%@.%@", version,build] cStringUsingEncoding:NSASCIIStringEncoding];
+	linphone_core_set_user_agent(theLinphoneCore, device.UTF8String, cString);
 
 	_contactSipField = [self lpConfigStringForKey:@"contact_im_type_value" inSection:@"sip" withDefault:@"SIP"];
 
