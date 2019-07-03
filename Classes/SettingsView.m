@@ -709,6 +709,10 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
     [hiddenKeys addObject:@"use_rls_presence"];
     [hiddenKeys addObject:@"presence"];
     
+    //TASK 160
+    [hiddenKeys addObject:@"adaptive_rate_control_preference"];
+    [hiddenKeys addObject:@"adaptive_rate_control_group"];
+    
 	if (!linphone_core_get_video_preset(LC) || strcmp(linphone_core_get_video_preset(LC), "custom") != 0) {
 		[hiddenKeys addObject:@"video_preferred_fps_preference"];
 		[hiddenKeys addObject:@"download_bandwidth_preference"];
