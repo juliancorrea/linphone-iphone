@@ -37,10 +37,10 @@
 			<string>Debug</string>
 			<key>Titles</key>
 			<array>
-				<string>None</string>
-				<string>Application only</string>
-				<string>Application and libraries warnings</string>
-				<string>All</string>
+				<string>Não</string>
+				<string>Apenas aplicação</string>
+				<string>Avisos de Aplicação e bibliotecas</string>
+				<string>Tudo</string>
 			</array>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
