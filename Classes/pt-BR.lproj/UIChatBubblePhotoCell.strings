@@ -1,0 +1,45 @@
+
+/* Class = "UILabel"; text = "Delivered"; ObjectID = "44j-me-Iqi"; */
+"44j-me-Iqi.text" = "Delivered";
+
+/* Class = "UIButton"; accessibilityLabel = "Cancel"; ObjectID = "6dl-Nz-rdv"; */
+"6dl-Nz-rdv.accessibilityLabel" = "Cancel";
+
+/* Class = "UIButton"; normalTitle = "CANCEL"; ObjectID = "6dl-Nz-rdv"; */
+"6dl-Nz-rdv.normalTitle" = "CANCEL";
+
+/* Class = "UIButton"; normalTitle = "Open"; ObjectID = "IGl-nl-xIE"; */
+"IGl-nl-xIE.normalTitle" = "Open";
+
+/* Class = "UIImageView"; accessibilityLabel = "Delivery failed"; ObjectID = "IST-5o-DCu"; */
+"IST-5o-DCu.accessibilityLabel" = "Delivery failed";
+
+/* Class = "UILabel"; accessibilityLabel = "Contact name"; ObjectID = "JyR-RQ-uwF"; */
+"JyR-RQ-uwF.accessibilityLabel" = "Contact name";
+
+/* Class = "UILabel"; text = "11:35 John Doe"; ObjectID = "JyR-RQ-uwF"; */
+"JyR-RQ-uwF.text" = "11:35 John Doe";
+
+/* Class = "UIImageView"; accessibilityLabel = "Delivery failed"; ObjectID = "LPj-VT-0fH"; */
+"LPj-VT-0fH.accessibilityLabel" = "Delivery failed";
+
+/* Class = "UIButton"; accessibilityLabel = "Download"; ObjectID = "N75-gL-R6t"; */
+"N75-gL-R6t.accessibilityLabel" = "Download";
+
+/* Class = "UIButton"; normalTitle = "DOWNLOAD"; ObjectID = "N75-gL-R6t"; */
+"N75-gL-R6t.normalTitle" = "DOWNLOAD";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "WkE-rP-Y0R"; */
+"WkE-rP-Y0R.text" = "Label";
+
+/* Class = "UIButton"; accessibilityLabel = "Cancel"; ObjectID = "cvc-tl-Pcf"; */
+"cvc-tl-Pcf.accessibilityLabel" = "Cancel";
+
+/* Class = "UIButton"; normalTitle = "PLAY"; ObjectID = "cvc-tl-Pcf"; */
+"cvc-tl-Pcf.normalTitle" = "PLAY";
+
+/* Class = "UITextView"; text = "Lore ipsum..."; ObjectID = "cx9-0K-P9L"; */
+"cx9-0K-P9L.text" = "Lore ipsum...";
+
+/* Class = "UIImageView"; accessibilityLabel = "Contact avatar"; ObjectID = "hD2-19-7IH"; */
+"hD2-19-7IH.accessibilityLabel" = "Contact avatar";
