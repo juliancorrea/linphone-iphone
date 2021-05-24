@@ -1,20 +1,20 @@
-/* UIEditableTableViewCell.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "UIContactDetailsCell.h"
@@ -45,12 +45,13 @@
 - (void)setAddress:(NSString *)address {
 	_addressLabel.text = _editTextfield.text = address;
 	char *normAddr = (char *)_addressLabel.text.UTF8String;
-	if(_addressLabel.text && linphone_proxy_config_is_phone_number(linphone_core_get_default_proxy_config(LC), _addressLabel.text.UTF8String)) {
-		normAddr = linphone_proxy_config_normalize_phone_number(linphone_core_get_default_proxy_config(LC),
+	LinphoneAccount *account = linphone_core_get_default_account(LC);
+	if(_addressLabel.text && account && linphone_account_is_phone_number(account, _addressLabel.text.UTF8String)) {
+		normAddr = linphone_account_normalize_phone_number(account,
 																_addressLabel.text.UTF8String);
 	}
 	LinphoneAddress *addr = linphone_core_interpret_url(LC, normAddr);
-	_chatButton.enabled = _callButton.enabled = (addr != NULL);
+	_chatButton.enabled = _callButton.enabled = _encryptedChatButton.enabled = (addr != NULL);
 
 	_chatButton.accessibilityLabel =
 		[NSString stringWithFormat:NSLocalizedString(@"Chat with %@", nil), _addressLabel.text];
@@ -61,18 +62,33 @@
 
 	_linphoneImage.hidden = TRUE;
 	if (contact) {
-		self.linphoneImage.hidden =
-			!((contact.friend &&
-			   linphone_presence_model_get_basic_status(linphone_friend_get_presence_model_for_uri_or_tel(
-				   contact.friend, _addressLabel.text.UTF8String)) == LinphonePresenceBasicStatusOpen) ||
-			  (!linphone_proxy_config_is_phone_number(linphone_core_get_default_proxy_config(LC),
+        const LinphonePresenceModel *model = contact.friend ? linphone_friend_get_presence_model_for_uri_or_tel(contact.friend, _addressLabel.text.UTF8String) : NULL;
+        
+		self.linphoneImage.hidden = [LinphoneManager.instance lpConfigBoolForKey:@"hide_linphone_contacts" inSection:@"app"] ||
+			!((model && linphone_presence_model_get_basic_status(model) == LinphonePresenceBasicStatusOpen) ||
+			  (account && !linphone_account_is_phone_number(account,
 													  _addressLabel.text.UTF8String) &&
 			   [FastAddressBook isSipURIValid:_addressLabel.text]));
+        ContactDetailsView *contactDetailsView = VIEW(ContactDetailsView);
+        self.inviteButton.hidden = !ENABLE_SMS_INVITE || [[contactDetailsView.contact sipAddresses] count] > 0 || !self.linphoneImage.hidden;
+		[self shouldHideEncryptedChatView:account && linphone_account_params_get_conference_factory_uri(linphone_account_get_params(account)) && model && linphone_presence_model_has_capability(model, LinphoneFriendCapabilityLimeX3dh)];
 	}
 
 	if (addr) {
-		linphone_address_destroy(addr);
+		linphone_address_unref(addr);
 	}
+}
+
+- (void)shouldHideEncryptedChatView:(BOOL)hasLime {
+    _encryptedChatView.hidden = !hasLime;
+    CGRect newFrame = _optionsView.frame;
+    if (!hasLime) {
+        newFrame.origin.x = _addressLabel.frame.origin.x + _callButton.frame.size.width * 2/3;
+        
+    } else {
+        newFrame.origin.x = _addressLabel.frame.origin.x;
+    }
+    _optionsView.frame = newFrame;
 }
 
 - (void)shouldHideLinphoneImageOfAddress {
@@ -81,9 +97,10 @@
 	}
 
 	char *normAddr = (char *)_addressLabel.text.UTF8String;
-	if (linphone_proxy_config_is_phone_number(linphone_core_get_default_proxy_config(LC),
+	LinphoneAccount *account = linphone_core_get_default_account(LC);
+	if (account && linphone_account_is_phone_number(account,
 											  _addressLabel.text.UTF8String)) {
-		normAddr = linphone_proxy_config_normalize_phone_number(linphone_core_get_default_proxy_config(LC),
+		normAddr = linphone_account_normalize_phone_number(account,
 																_addressLabel.text.UTF8String);
 	}
 	LinphoneAddress *addr = linphone_core_interpret_url(LC, normAddr);
@@ -92,11 +109,11 @@
 	Contact *contact = [FastAddressBook getContactWithAddress:(addr)];
 
 	if (contact) {
-		self.linphoneImage.hidden = ! ((contact.friend && linphone_presence_model_get_basic_status(linphone_friend_get_presence_model_for_uri_or_tel(contact.friend, _addressLabel.text.UTF8String)) == LinphonePresenceBasicStatusOpen) || (!linphone_proxy_config_is_phone_number(linphone_core_get_default_proxy_config(LC), _addressLabel.text.UTF8String) && [FastAddressBook isSipURIValid:_addressLabel.text]));
+		self.linphoneImage.hidden =[LinphoneManager.instance lpConfigBoolForKey:@"hide_linphone_contacts" inSection:@"app"] || ! ((contact.friend && linphone_presence_model_get_basic_status(linphone_friend_get_presence_model_for_uri_or_tel(contact.friend, _addressLabel.text.UTF8String)) == LinphonePresenceBasicStatusOpen) || (account && !linphone_account_is_phone_number(account, _addressLabel.text.UTF8String) && [FastAddressBook isSipURIValid:_addressLabel.text]));
 	}
 	
 	if (addr) {
-		linphone_address_destroy(addr);
+		linphone_address_unref(addr);
 	}
 }
 
@@ -130,13 +147,21 @@
 	LinphoneAddress *addr = [LinphoneUtils normalizeSipOrPhoneAddress:_addressLabel.text];
 	[LinphoneManager.instance call:addr];
 	if (addr)
-		linphone_address_destroy(addr);
+		linphone_address_unref(addr);
 }
 
 - (IBAction)onChatClick:(id)event {
 	LinphoneAddress *addr = [LinphoneUtils normalizeSipOrPhoneAddress:_addressLabel.text];
-	[PhoneMainView.instance getOrCreateOneToOneChatRoom:addr waitView:_waitView];
-	linphone_address_destroy(addr);
+	[LinphoneManager.instance lpConfigSetBool:TRUE forKey:@"create_chat"];
+	[PhoneMainView.instance getOrCreateOneToOneChatRoom:addr waitView:_waitView isEncrypted:FALSE];
+	linphone_address_unref(addr);
+}
+
+- (IBAction)onEncrptedChatClick:(id)sender {
+    LinphoneAddress *addr = [LinphoneUtils normalizeSipOrPhoneAddress:_addressLabel.text];
+	[LinphoneManager.instance lpConfigSetBool:TRUE forKey:@"create_chat"];
+    [PhoneMainView.instance getOrCreateOneToOneChatRoom:addr waitView:_waitView isEncrypted:TRUE];
+    linphone_address_unref(addr);
 }
 
 - (IBAction)onDeleteClick:(id)sender {
@@ -145,6 +170,19 @@
 	[tableView.dataSource tableView:tableView
 				 commitEditingStyle:UITableViewCellEditingStyleDelete
 				  forRowAtIndexPath:indexPath];
+}
+
+#pragma mark - SMS invite
+
+- (IBAction)onSMSInviteClick:(id)sender {
+    MFMessageComposeViewController *controller = [[MFMessageComposeViewController alloc] init];
+    if([MFMessageComposeViewController canSendText]) {
+        controller.body = NSLocalizedString(@"Hello! Join me on Linphone! You can download it for free at: https://www.linphone.org/download",nil);
+        controller.recipients = [NSArray arrayWithObjects:[self.addressLabel text], nil];
+        
+        controller.messageComposeDelegate = PhoneMainView.instance;
+        [PhoneMainView.instance presentViewController:controller animated:YES completion:nil];
+    }
 }
 
 @end

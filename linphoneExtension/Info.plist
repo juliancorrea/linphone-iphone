@@ -17,7 +17,11 @@
 	<key>CFBundlePackageType</key>
 	<string>XPC!</string>
 	<key>CFBundleShortVersionString</key>
+<<<<<<< HEAD
 	<string>1.0.0</string>
+=======
+	<string>$(MARKETING_VERSION)</string>
+>>>>>>> a1e3989d0a22ef203f1cb9ecd7aaacfa65bda75c
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSExtension</key>
@@ -26,8 +30,13 @@
 		<dict>
 			<key>NSExtensionActivationRule</key>
 			<dict>
+<<<<<<< HEAD
 				<key>NSExtensionActivationRule</key>
 				<string>TRUEPREDICATE</string>
+=======
+				<key>NSExtensionActivationSupportsAttachmentsWithMaxCount</key>
+				<integer>1</integer>
+>>>>>>> a1e3989d0a22ef203f1cb9ecd7aaacfa65bda75c
 				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
 				<integer>1</integer>
 				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
@@ -35,7 +44,13 @@
 				<key>NSExtensionActivationSupportsMovieWithMaxCount</key>
 				<integer>1</integer>
 				<key>NSExtensionActivationSupportsText</key>
+<<<<<<< HEAD
 				<false/>
+=======
+				<true/>
+				<key>NSExtensionActivationSupportsWebPageWithMaxCount</key>
+				<integer>1</integer>
+>>>>>>> a1e3989d0a22ef203f1cb9ecd7aaacfa65bda75c
 				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
 				<integer>1</integer>
 			</dict>

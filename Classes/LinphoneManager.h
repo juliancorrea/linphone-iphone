@@ -1,20 +1,20 @@
-/* LinphoneManager.h
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2011  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone 
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import <Foundation/Foundation.h>
@@ -34,7 +34,8 @@
 #include "linphone/linphonecore.h"
 #include "bctoolbox/list.h"
 #import "OrderedDictionary.h"
-#import "ProviderDelegate.h"
+
+#import "linphoneapp-Swift.h"
 
 extern NSString *const LINPHONERC_APPLICATION_KEY;
 
@@ -57,6 +58,9 @@ extern NSString *const kLinphoneCallEncryptionChanged;
 extern NSString *const kLinphoneFileTransferSendUpdate;
 extern NSString *const kLinphoneFileTransferRecvUpdate;
 extern NSString *const kLinphoneQRCodeFound;
+extern NSString *const kLinphoneChatCreateViewChange;
+
+extern NSString *const kLinphoneMsgNotificationAppGroupId;
 
 typedef enum _NetworkType {
     network_none = 0,
@@ -67,12 +71,6 @@ typedef enum _NetworkType {
     network_wifi
 } NetworkType;
 
-typedef enum _Connectivity {
-	wifi,
-	wwan,
-    none
-} Connectivity;
-
 extern const int kLinphoneAudioVbrCodecDefaultBitrate;
 
 /* Application specific call context */
@@ -80,21 +78,6 @@ typedef struct _CallContext {
     LinphoneCall* call;
     bool_t cameraIsEnabled;
 } CallContext;
-
-struct NetworkReachabilityContext {
-    bool_t testWifi, testWWan;
-    void (*networkStateChanged) (Connectivity newConnectivity);
-};
-
-@interface LinphoneCallAppData :NSObject {
-    @public
-	bool_t batteryWarningShown;
-    UILocalNotification *notification;
-    NSMutableDictionary *userInfos;
-	bool_t videoRequested; /*set when user has requested for video*/
-    NSTimer* timer;
-};
-@end
 
 typedef struct _LinphoneManagerSounds {
     SystemSoundID vibrate;
@@ -106,8 +89,8 @@ typedef struct _LinphoneManagerSounds {
 
 @private
 	NSTimer* mIterateTimer;
-    NSMutableArray*  pushCallIDs;
-	Connectivity connectivity;
+        NSMutableArray*  pushCallIDs;
+
 	UIBackgroundTaskIdentifier pausedCallBgTask;
 	UIBackgroundTaskIdentifier incallBgTask;
 	UIBackgroundTaskIdentifier pushBgTaskRefer;
@@ -123,6 +106,7 @@ typedef struct _LinphoneManagerSounds {
 + (void)instanceRelease;
 #endif
 + (LinphoneCore*) getLc;
++ (BOOL)isLcInitialized;
 + (BOOL)runningOnIpad;
 + (BOOL)isNotIphone3G;
 + (NSString *)getPreferenceForCodec: (const char*) name withRate: (int) rate;
@@ -133,38 +117,36 @@ typedef struct _LinphoneManagerSounds {
 
 - (void)playMessageSound;
 - (void)resetLinphoneCore;
-- (void)startLinphoneCore;
+- (void)launchLinphoneCore;
 - (void)destroyLinphoneCore;
+- (void)startLinphoneCore;
 - (BOOL)resignActive;
 - (void)becomeActive;
 - (BOOL)enterBackgroundMode;
 - (void)addPushCallId:(NSString*) callid;
+- (void)configurePushTokenForProxyConfigs;
 - (void)configurePushTokenForProxyConfig: (LinphoneProxyConfig*)cfg;
 - (BOOL)popPushCallID:(NSString*) callId;
 - (void)acceptCallForCallId:(NSString*)callid;
-- (LinphoneCall *)callByCallId:(NSString *)call_id;
-- (void)cancelLocalNotifTimerForCallId:(NSString*)callid;
-- (void)alertLIME:(LinphoneChatRoom *)room;
-- (void)startPushLongRunningTask:(NSString *)loc_key callId:(NSString *)callId;
 + (BOOL)langageDirectionIsRTL;
-+ (void)kickOffNetworkConnection;
-- (void)setupNetworkReachabilityCallback;
 
 - (void)refreshRegisters;
 
-- (bool)allowSpeaker;
-
 - (void)configureVbrCodecs;
 
-+ (BOOL)copyFile:(NSString*)src destination:(NSString*)dst override:(BOOL)override;
++ (BOOL)copyFile:(NSString*)src destination:(NSString*)dst override:(BOOL)override ignore:(BOOL)ignore;
++ (PHFetchResult *)getPHAssets:(NSString *)key;
 + (NSString*)bundleFile:(NSString*)file;
-+ (NSString*)documentFile:(NSString*)file;
++ (NSString *)preferenceFile:(NSString *)file;
++ (NSString *)documentFile:(NSString *)file;
++ (NSString*)dataFile:(NSString*)file;
 + (NSString*)cacheDirectory;
+// migration
++ (NSString *)oldPreferenceFile:(NSString *)file;
++ (NSString *)oldDataFile:(NSString *)file;
 
-- (void)acceptCall:(LinphoneCall *)call evenWithVideo:(BOOL)video;
 - (void)send:(NSString *)replyText toChatRoom:(LinphoneChatRoom *)room;
 - (void)call:(const LinphoneAddress *)address;
-- (BOOL)doCall:(const LinphoneAddress *)iaddr;
 
 +(id)getMessageAppDataForKey:(NSString*)key inMessage:(LinphoneChatMessage*)msg;
 +(void)setValueInMessageAppData:(id)value forKey:(NSString*)key inMessage:(LinphoneChatMessage*)msg;
@@ -198,8 +180,6 @@ typedef struct _LinphoneManagerSounds {
 
 - (void)shouldPresentLinkPopup;
 
-- (void)setProviderDelegate:(ProviderDelegate *)del;
-
 - (void) setLinphoneManagerAddressBookMap:(OrderedDictionary*) addressBook;
 - (OrderedDictionary*) getLinphoneManagerAddressBookMap;
 
@@ -209,24 +189,24 @@ typedef struct _LinphoneManagerSounds {
 - (void)checkNewVersion;
 
 - (void)loadAvatar;
+- (void)migrationPerAccount;
 
-@property ProviderDelegate *providerDelegate;
+- (void)setupGSMInteraction;
+- (void)setBluetoothEnabled:(BOOL)enable;
+- (BOOL)isCTCallCenterExist;
 
 @property (readonly) BOOL isTesting;
 @property(readonly, strong) FastAddressBook *fastAddressBook;
-@property Connectivity connectivity;
 @property (readonly) NetworkType network;
 @property (readonly) const char*  frontCamId;
 @property (readonly) const char*  backCamId;
 @property(strong, nonatomic) NSString *SSID;
 @property (readonly) sqlite3* database;
-@property(nonatomic, strong) NSData *pushNotificationToken;
+@property(nonatomic, strong) NSData *pushKitToken;
+@property(nonatomic, strong) NSData *remoteNotificationToken;
 @property (readonly) LinphoneManagerSounds sounds;
 @property (readonly) NSMutableArray *logs;
-@property (nonatomic, assign) BOOL speakerBeforePause;
-@property (nonatomic, assign) BOOL speakerEnabled;
 @property (nonatomic, assign) BOOL bluetoothAvailable;
-@property (nonatomic, assign) BOOL bluetoothEnabled;
 @property (readonly) NSString* contactSipField;
 @property (readonly,copy) NSString* contactFilter;
 @property (copy) void (^silentPushCompletion)(UIBackgroundFetchResult);
@@ -234,11 +214,11 @@ typedef struct _LinphoneManagerSounds {
 @property (readonly) LpConfig *configDb;
 @property(readonly) InAppProductsManager *iapManager;
 @property(strong, nonatomic) NSMutableArray *fileTransferDelegates;
-@property BOOL nextCallIsTransfer;
 @property BOOL conf;
 @property NSDictionary *pushDict;
 @property(strong, nonatomic) OrderedDictionary *linphoneManagerAddressBookMap;
 @property (nonatomic, assign) BOOL contactsUpdated;
+@property (nonatomic, assign) BOOL canConfigurePushTokenForProxyConfigs; // used to register at the right time when receiving push notif tokens
 @property UIImage *avatar;
 
 @end

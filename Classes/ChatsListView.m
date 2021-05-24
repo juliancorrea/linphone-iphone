@@ -1,20 +1,20 @@
-/* ChatViewController.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "ChatsListView.h"
@@ -38,12 +38,23 @@
 	[_backToCallButton update];
 	self.tableController.waitView = _waitView;
 	[self setEditing:NO];
+	LinphoneProxyConfig *cfg = linphone_core_get_default_proxy_config(LC);
+	_addGroupChatButton.hidden = !(cfg && linphone_proxy_config_get_conference_factory_uri(cfg));
+	[_toggleSelectionButton setImage:[UIImage imageNamed:@"select_all_default.png"] forState:UIControlStateSelected];
+
+	// For testing crashlytics
+    /*UIButton* button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    button.frame = CGRectMake(20, 50, 100, 30);
+    [button setTitle:@"Crash" forState:UIControlStateNormal];
+    [button addTarget:self action:@selector(crashButtonTapped:)
+        forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:button];*/
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
 	[super viewWillDisappear:animated];
 
-	[NSNotificationCenter.defaultCenter removeObserver:self name:kLinphoneMessageReceived object:nil];
+	[NSNotificationCenter.defaultCenter removeObserver:self];
 	self.view = NULL;
 }
 
@@ -80,16 +91,29 @@ static UICompositeViewDescription *compositeDescription = nil;
 
 #pragma mark - Action Functions
 
+- (void)newChatCreate:(BOOL)isGroup {
+    ChatConversationCreateView *view = VIEW(ChatConversationCreateView);
+    view.isForEditing = false;
+    view.isGroupChat = isGroup;
+    view.tableController.notFirstTime = FALSE;
+    [view.tableController.contactsGroup removeAllObjects];
+    [PhoneMainView.instance changeCurrentView:view.compositeViewDescription];
+}
+
+- (IBAction)onAddGroupChatClick:(id)event {
+    [self newChatCreate:TRUE];
+    if (IPAD)
+        [NSNotificationCenter.defaultCenter postNotificationName:kLinphoneChatCreateViewChange object:VIEW(ChatConversationCreateView) userInfo:nil];
+}
+
 - (IBAction)onAddClick:(id)event {
-	ChatConversationCreateView *view = VIEW(ChatConversationCreateView);
-	view.isForEditing = false;
-	view.tableController.notFirstTime = FALSE;
-	[view.tableController.contactsGroup removeAllObjects];
-	[PhoneMainView.instance changeCurrentView:view.compositeViewDescription];
+	[self newChatCreate:FALSE];
+    if (IPAD)
+        [NSNotificationCenter.defaultCenter postNotificationName:kLinphoneChatCreateViewChange object:VIEW(ChatConversationCreateView) userInfo:nil];
 }
 
 - (IBAction)onEditionChangeClick:(id)sender {
-	_addButton.hidden = self.tableController.isEditing;
+	_addButton.hidden = _addGroupChatButton.hidden = self.tableController.isEditing;
 	[_backToCallButton update];
 }
 
@@ -116,6 +140,10 @@ static UICompositeViewDescription *compositeDescription = nil;
 		  [_tableController removeSelectionUsing:nil];
 		  [self onEditionChangeClick:nil];
 		}];
+}
+
+- (IBAction)crashButtonTapped:(id)sender {
+    assert(NO);
 }
 
 @end

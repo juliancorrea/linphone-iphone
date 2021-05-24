@@ -1,20 +1,20 @@
-/* UIPauseButton.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "UIPauseButton.h"
@@ -82,8 +82,12 @@
 	switch (type) {
 		case UIPauseButtonType_Call: {
 			if (call != nil) {
-				LinphoneManager.instance.speakerBeforePause = LinphoneManager.instance.speakerEnabled;
-				linphone_call_pause(call);
+				if ([CallManager callKitEnabled]) {
+					[CallManager.instance setHeldWithCall:call hold:true];
+				} else {
+					CallManager.instance.speakerBeforePause = CallManager.instance.speakerEnabled;
+					linphone_call_pause(call);
+				}
 			} else {
 				LOGW(@"Cannot toggle pause buttton, because no current call");
 			}
@@ -99,8 +103,12 @@
 		case UIPauseButtonType_CurrentCall: {
 			LinphoneCall *currentCall = [UIPauseButton getCall];
 			if (currentCall != nil) {
-				LinphoneManager.instance.speakerBeforePause = LinphoneManager.instance.speakerEnabled;
-				linphone_call_pause(currentCall);
+				if ([CallManager callKitEnabled]) {
+					[CallManager.instance setHeldWithCall:currentCall hold:true];
+				} else {
+					CallManager.instance.speakerBeforePause = CallManager.instance.speakerEnabled;
+					linphone_call_pause(currentCall);
+				}
 			} else {
 				LOGW(@"Cannot toggle pause buttton, because no current call");
 			}
@@ -113,25 +121,17 @@
 	switch (type) {
 		case UIPauseButtonType_Call: {
 			if (call != nil) {
-				linphone_call_resume(call);
+				if ([CallManager callKitEnabled]) {
+					[CallManager.instance setHeldWithCall:call hold:false];
+				} else {
+					linphone_call_resume(call);
+				}
 			} else {
 				LOGW(@"Cannot toggle pause buttton, because no current call");
 			}
 			break;
 		}
 		case UIPauseButtonType_Conference: {
-			if (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_9_x_Max) {
-				NSString *key = (NSString *)[LinphoneManager.instance.providerDelegate.uuids allKeys][0];
-				NSUUID *uuid = (NSUUID *)[LinphoneManager.instance.providerDelegate.uuids objectForKey:key];
-				if (!uuid) {
-					return;
-				}
-				CXSetHeldCallAction *act = [[CXSetHeldCallAction alloc] initWithCallUUID:uuid onHold:NO];
-				CXTransaction *tr = [[CXTransaction alloc] initWithAction:act];
-				[LinphoneManager.instance.providerDelegate.controller requestTransaction:tr
-																			  completion:^(NSError *err){
-																			  }];
-			}
 			linphone_core_enter_conference(LC);
 			// Fake event
 			[NSNotificationCenter.defaultCenter postNotificationName:kLinphoneCallUpdate object:self];
@@ -139,7 +139,11 @@
 		}
 		case UIPauseButtonType_CurrentCall: {
 			LinphoneCall *currentCall = [UIPauseButton getCall];
-			linphone_call_resume(currentCall);
+			if ([CallManager callKitEnabled]) {
+				[CallManager.instance setHeldWithCall:currentCall hold:false];
+			} else {
+				linphone_call_resume(currentCall);
+			}
 			break;
 		}
 	}

@@ -1,20 +1,20 @@
-/* UIChatRoomCell.h
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone 
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import <UIKit/UIKit.h>
@@ -24,6 +24,7 @@
 #import "FileTransferDelegate.h"
 #import "ChatConversationTableView.h"
 #import "UIChatBubbleTextCell.h"
+#import "UIChatContentView.h"
 
 @interface UIChatBubblePhotoCell : UIChatBubbleTextCell
 
@@ -40,8 +41,11 @@
 @property(strong, nonatomic) IBOutlet UITapGestureRecognizer *imageGestureRecognizer;
 @property (weak, nonatomic) IBOutlet UIButton *fileButton;
 @property (weak, nonatomic) IBOutlet UIView *fileView;
+@property (strong, nonatomic) IBOutlet UILongPressGestureRecognizer *plusLongGestureRecognizer;
+@property(strong, nonatomic) NSMutableArray<UIChatContentView *> *contentViews;
 
-- (void)setEvent:(LinphoneEventLog *)event;
+
+- (void)setEvent:(LinphoneEventLog *)event vfsEnabled:(BOOL)enabled;
 - (void)setChatMessage:(LinphoneChatMessage *)message;
 - (void)connectToFileDelegate:(FileTransferDelegate *)ftd;
 - (IBAction)onDownloadClick:(id)event;
@@ -50,6 +54,7 @@
 - (IBAction)onResendClick:(id)event;
 - (IBAction)onPlayClick:(id)sender;
 - (IBAction)onFileClick:(id)sender;
+- (IBAction)onPlusClick:(id)sender;
 
 @end
 

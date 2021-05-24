@@ -1,9 +1,21 @@
-//
-//  ChatConversationInfoView.m
-//  linphone
-//
-//  Created by REIS Benjamin on 23/10/2017.
-//
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
+ *
+ * This file is part of linphone-iphone
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #import <Foundation/Foundation.h>
 
@@ -120,6 +132,10 @@ static UICompositeViewDescription *compositeDescription = nil;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
+	[self removeCallbacks];
+}
+
+- (void)removeCallbacks {
 	if (!_room || !_chatRoomCbs)
 		return;
 
@@ -142,7 +158,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 		}
 		addresses = bctbx_list_append(addresses, (void *)linphoneAddress);
 	}
-	[PhoneMainView.instance createChatRoomWithSubject:_nameLabel.text.UTF8String addresses:addresses andWaitView:_waitView];
+	[PhoneMainView.instance createChatRoom:_nameLabel.text.UTF8String addresses:addresses andWaitView:_waitView isEncrypted:_encrypted isGroup:TRUE];
 	bctbx_list_free_with_data(addresses, (void (*)(void *))linphone_address_unref);
 }
 
@@ -159,6 +175,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 			continue;
 
 		LinphoneAddress *addr = linphone_address_new(uri.UTF8String);
+		linphone_address_clean(addr);//keep only username@domain
 		if (addedPartipants)
 			addedPartipants = bctbx_list_append(addedPartipants, addr);
 		else
@@ -258,11 +275,14 @@ static UICompositeViewDescription *compositeDescription = nil;
 }
 
 - (IBAction)onAddClick:(id)sender {
-	ChatConversationCreateView *view = VIEW(ChatConversationCreateView);
-	view.tableController.notFirstTime = TRUE;
-	view.isForEditing = !_create;
-	view.tableController.contactsGroup = [_contacts mutableCopy];
-	[PhoneMainView.instance popToView:view.compositeViewDescription];
+	if (_create || _imAdmin) {
+		ChatConversationCreateView *view = VIEW(ChatConversationCreateView);
+		view.tableController.notFirstTime = TRUE;
+		view.isForEditing = !_create;
+		view.isGroupChat = TRUE;
+		view.tableController.contactsGroup = [_contacts mutableCopy];
+		[PhoneMainView.instance popToView:view.compositeViewDescription];
+	}
 }
 
 #pragma mark - TableView
@@ -283,7 +303,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 	}
 	cell.uri = _contacts[indexPath.row];
 	LinphoneAddress *addr = linphone_address_new(cell.uri.UTF8String);
-	cell.nameLabel.text = [FastAddressBook displayNameForAddress:addr];
+	cell.nameLabel.text = (addr == nil? cell.uri : [FastAddressBook displayNameForAddress:addr]);
 	[cell.avatarImage setImage:[FastAddressBook imageForAddress:addr] bordered:YES withRoundedRadius:YES];
 	cell.controllerView = self;
 	if(![_admins containsObject:cell.uri]) {
@@ -342,7 +362,9 @@ void chat_room_subject_changed(LinphoneChatRoom *cr, const LinphoneEventLog *eve
 
 void chat_room_participant_added(LinphoneChatRoom *cr, const LinphoneEventLog *event_log) {
 	ChatConversationInfoView *view = (__bridge ChatConversationInfoView *)linphone_chat_room_cbs_get_user_data(linphone_chat_room_get_current_callbacks(cr));
-	NSString *participantAddress = [NSString stringWithUTF8String:linphone_address_as_string(linphone_event_log_get_participant_address(event_log))];
+	char *str = linphone_address_as_string(linphone_event_log_get_participant_address(event_log));
+	NSString *participantAddress = [NSString stringWithUTF8String:str];
+	ms_free(str);
 	[view.oldContacts addObject:participantAddress];
 	[view.contacts addObject:participantAddress];
 	[view.tableView reloadData];
@@ -350,7 +372,9 @@ void chat_room_participant_added(LinphoneChatRoom *cr, const LinphoneEventLog *e
 
 void chat_room_participant_removed(LinphoneChatRoom *cr, const LinphoneEventLog *event_log) {
 	ChatConversationInfoView *view = (__bridge ChatConversationInfoView *)linphone_chat_room_cbs_get_user_data(linphone_chat_room_get_current_callbacks(cr));
-	NSString *participantAddress = [NSString stringWithUTF8String:linphone_address_as_string(linphone_event_log_get_participant_address(event_log))];
+	char *str = linphone_address_as_string(linphone_event_log_get_participant_address(event_log));
+	NSString *participantAddress = [NSString stringWithUTF8String:str];
+	ms_free(str);
 	[view.oldContacts removeObject:participantAddress];
 	[view.contacts removeObject:participantAddress];
 	[view.tableView reloadData];
@@ -358,7 +382,9 @@ void chat_room_participant_removed(LinphoneChatRoom *cr, const LinphoneEventLog 
 
 void chat_room_participant_admin_status_changed(LinphoneChatRoom *cr, const LinphoneEventLog *event_log) {
 	ChatConversationInfoView *view = (__bridge ChatConversationInfoView *)linphone_chat_room_cbs_get_user_data(linphone_chat_room_get_current_callbacks(cr));
-	NSString *participantAddress = [NSString stringWithUTF8String:linphone_address_as_string(linphone_event_log_get_participant_address(event_log))];
+	char *str = linphone_address_as_string(linphone_event_log_get_participant_address(event_log));
+	NSString *participantAddress = [NSString stringWithUTF8String:str];
+	ms_free(str);
 
 	LinphoneParticipant *me = linphone_chat_room_get_me(cr);
 	if (me && linphone_address_equal(linphone_participant_get_address(me), linphone_event_log_get_participant_address(event_log))) {

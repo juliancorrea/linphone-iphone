@@ -1,20 +1,20 @@
-/* LinphoneCoreSettingsStore.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "LinphoneCoreSettingsStore.h"
@@ -177,15 +177,13 @@
 		proxy = proxies->data;
 		// root section
 		{
-			const char *refkey = linphone_proxy_config_get_ref_key(proxy);
-			if (refkey) {
-				BOOL pushEnabled = (strcmp(refkey, "push_notification") == 0);
-				[self setBool:pushEnabled forKey:@"account_pushnotification_preference"];
-			}
+			BOOL pushEnabled = linphone_proxy_config_is_push_notification_allowed(proxy);
+			[self setBool:pushEnabled forKey:@"account_pushnotification_preference"];
+
 			const LinphoneAddress *identity_addr = linphone_proxy_config_get_identity_address(proxy);
-			if (identity_addr) {
-				const char *server_addr = linphone_proxy_config_get_server_addr(proxy);
-				LinphoneAddress *proxy_addr = linphone_core_interpret_url(LC, server_addr);
+			const char *server_addr = linphone_proxy_config_get_server_addr(proxy);
+			LinphoneAddress *proxy_addr = linphone_core_interpret_url(LC, server_addr);
+			if (identity_addr && proxy_addr) {
 				int port = linphone_address_get_port(proxy_addr);
 
 				[self setCString:linphone_address_get_username(identity_addr)
@@ -214,7 +212,7 @@
 					default:
 						break;
 				}
-				linphone_address_destroy(proxy_addr);
+				linphone_address_unref(proxy_addr);
 				[self setCString:tname forKey:@"account_transport_preference"];
 			}
 
@@ -333,12 +331,19 @@
 
 		[self setBool:[lm lpConfigBoolForKey:@"repeat_call_notification"]
 			   forKey:@"repeat_call_notification_preference"];
+		[self setBool:linphone_core_is_media_encryption_mandatory(LC) forKey:@"media_encrption_mandatory_preference"];
+		[self setBool:[lm lpConfigBoolForKey:@"pref_accept_early_media"]
+			   forKey:@"pref_accept_early_media_preference"];
 	}
 
 	// chat section
 	{
-		[self setInteger:linphone_core_lime_enabled(LC) forKey:@"use_lime_preference"];
 		[self setCString:linphone_core_get_file_transfer_server(LC) forKey:@"file_transfer_server_url_preference"];
+        int maxSize = linphone_core_get_max_size_for_auto_download_incoming_files(LC);
+        [self setObject:maxSize==0 ? @"Always" : (maxSize==-1 ? @"Nerver" : @"Customize") forKey:@"auto_download_mode"];
+        [self setInteger:maxSize forKey:@"auto_download_incoming_files_max_size"];
+		[self setBool:[lm lpConfigBoolForKey:@"vfs_enabled_preference" withDefault:NO] forKey:@"vfs_enabled_mode"];
+		[self setBool:[lm lpConfigBoolForKey:@"auto_write_to_gallery_preference" withDefault:YES] forKey:@"auto_write_to_gallery_mode"];
 	}
 
 	// network section
@@ -428,7 +433,7 @@
 		if (parsed != NULL) {
 			[self setCString:linphone_address_get_display_name(parsed) forKey:@"primary_displayname_preference"];
 			[self setCString:linphone_address_get_username(parsed) forKey:@"primary_username_preference"];
-			linphone_address_destroy(parsed);
+			linphone_address_unref(parsed);
 		}
 	}
 
@@ -500,15 +505,11 @@
 
 	if (username && [username length] > 0 && domain && [domain length] > 0) {
 		int expire = [self integerForKey:@"account_expire_preference"];
-		BOOL isWifiOnly = [self boolForKey:@"wifi_only_preference"];
 		BOOL pushnotification = [self boolForKey:@"account_pushnotification_preference"];
 		NSString *prefix = [self stringForKey:@"account_prefix_preference"];
 		NSString *proxyAddress = [self stringForKey:@"account_proxy_preference"];
 
 		const char *route = NULL;
-
-		if (isWifiOnly && LinphoneManager.instance.connectivity == wwan)
-			expire = 0;
 
 		if ((!proxyAddress || [proxyAddress length] < 1) && domain) {
 			proxyAddress = domain;
@@ -551,12 +552,10 @@
 		}
 		linphone_address_set_domain(linphoneAddress, [domain UTF8String]);
 		linphone_address_set_display_name(linphoneAddress, (displayName.length ? displayName.UTF8String : NULL));
-		const char *identity = linphone_address_as_string(linphoneAddress);
-		linphone_address_destroy(linphoneAddress);
 		const char *password = [accountPassword UTF8String];
 		const char *ha1 = [accountHa1 UTF8String];
 
-		if (linphone_proxy_config_set_identity(proxyCfg, identity) == -1) {
+		if (linphone_proxy_config_set_identity_address(proxyCfg, linphoneAddress) == -1) {
 			error = NSLocalizedString(@"Invalid username or domain", nil);
 			goto bad_proxy;
 		}
@@ -587,11 +586,11 @@
 		}
 
 		// use empty string "" instead of NULL to avoid being overwritten by default proxy config values
-		linphone_proxy_config_set_ref_key(proxyCfg, pushnotification ? "push_notification" : "no_push_notification");
+		linphone_proxy_config_set_push_notification_allowed(proxyCfg, pushnotification);
 		[LinphoneManager.instance configurePushTokenForProxyConfig:proxyCfg];
 
 		linphone_proxy_config_enable_register(proxyCfg, is_enabled);
-		linphone_proxy_config_enable_avpf(proxyCfg, use_avpf);
+		linphone_proxy_config_set_avpf_mode(proxyCfg, use_avpf);
 		linphone_proxy_config_set_expires(proxyCfg, expire);
 		if (is_default) {
 			linphone_core_set_default_proxy_config(LC, proxyCfg);
@@ -617,8 +616,10 @@
 		if (strcmp(password,"") == 0) {
 			password = NULL;
 		}
-		
+
+		char *identity = linphone_address_as_string(linphoneAddress);
 		LinphoneAddress *from = linphone_core_interpret_url(LC, identity);
+		ms_free(identity);
 		if (from) {
 			const char *userid_str = (userID != nil) ? [userID UTF8String] : NULL;
 			LinphoneAuthInfo *info;
@@ -632,7 +633,7 @@
 											  linphone_proxy_config_get_domain(proxyCfg));
 			}
 
-			linphone_address_destroy(from);
+			linphone_address_unref(from);
 			linphone_core_add_auth_info(LC, info);
 			linphone_auth_info_destroy(info);
 			ms_free(realm);
@@ -641,7 +642,9 @@
 	bad_proxy:
 		if (proxy)
 			ms_free(proxy);
-
+		if (linphoneAddress)
+			linphone_address_destroy(linphoneAddress);
+			
 		// in case of error, show an alert to the user
 		if (error != nil) {
 			linphone_proxy_config_done(proxyCfg);
@@ -768,26 +771,37 @@
 		linphone_core_set_in_call_timeout(LC, [self integerForKey:@"in_call_timeout_preference"]);
 		[lm lpConfigSetString:[self stringForKey:@"voice_mail_uri_preference"] forKey:@"voice_mail_uri"];
 		[lm lpConfigSetBool:[self boolForKey:@"repeat_call_notification_preference"] forKey:@"repeat_call_notification"];
+		[lm lpConfigSetBool:[self boolForKey:@"pref_accept_early_media_preference"] forKey:@"pref_accept_early_media"];
+		linphone_core_set_media_encryption_mandatory(LC, [self boolForKey:@"media_encrption_mandatory_preference"]);
 
-		// chat section
-		int val = [self integerForKey:@"use_lime_preference"];
-		linphone_core_enable_lime(LC, val);
-		if (val == LinphoneLimeMandatory && (linphone_core_get_media_encryption(LC) != LinphoneMediaEncryptionZRTP)) {
-			linphone_core_set_media_encryption(LC, LinphoneMediaEncryptionZRTP);
-			[self setCString:"ZRTP" forKey:@"media_encryption_preference"];
-			UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"ZRTP activation", nil)
-																			 message:NSLocalizedString(@"LIME requires ZRTP encryption.\n"
-																									   @"By activating LIME you automatically activate ZRTP media encryption.",
-																									   nil)
-																	  preferredStyle:UIAlertControllerStyleAlert];
-
-			UIAlertAction *defaultAction = [UIAlertAction actionWithTitle:@"OK"
-																	style:UIAlertActionStyleDefault
-																  handler:^(UIAlertAction *action){}];
-			[errView addAction:defaultAction];
-			[PhoneMainView.instance presentViewController:errView animated:YES completion:nil];
-		}
 		linphone_core_set_file_transfer_server(LC, [self stringForKey:@"file_transfer_server_url_preference"].UTF8String);
+        int maxSize;
+        NSString *downloadMode = [self stringForKey:@"auto_download_mode"];
+        if ([downloadMode isEqualToString:@"Never"]) {
+            maxSize = -1;
+        } else if ([downloadMode isEqualToString:@"Always"]) {
+            maxSize = 0;
+        } else {
+            maxSize = [[self stringForKey:@"auto_download_incoming_files_max_size"] intValue];
+        }
+        linphone_core_set_max_size_for_auto_download_incoming_files(LC, maxSize);
+        [lm lpConfigSetString:[self stringForKey:@"auto_download_mode"] forKey:@"auto_download_mode"];
+		BOOL vfsEnabled = [self boolForKey:@"vfs_enabled_mode"] || [lm lpConfigBoolForKey:@"vfs_enabled_preference"];
+		if (vfsEnabled) {
+			if (TARGET_IPHONE_SIMULATOR) {
+				LOGW(@"[VFS] Can not active for simulators.");
+				[lm lpConfigSetBool:FALSE forKey:@"vfs_enabled_preference"];
+				[self setBool:FALSE forKey:@"vfs_enabled_mode"];
+			} else if (!VFSUtil.activateVFS) {
+				[VFSUtil oslogWithLog:@"[VFS] Error unable to activate." level:OS_LOG_TYPE_ERROR];
+				[lm lpConfigSetBool:FALSE forKey:@"vfs_enabled_preference"];
+				[self setBool:FALSE forKey:@"vfs_enabled_mode"];
+			} else {
+				[lm lpConfigSetBool:TRUE forKey:@"vfs_enabled_preference"];
+				[self setBool:TRUE forKey:@"vfs_enabled_mode"];
+			}
+		}
+		[lm lpConfigSetBool:[self boolForKey:@"auto_write_to_gallery_mode"] forKey:@"auto_write_to_gallery_preference"];
 
 		// network section
 		BOOL edgeOpt = [self boolForKey:@"edge_opt_preference"];
@@ -795,8 +809,6 @@
 
 		BOOL wifiOnly = [self boolForKey:@"wifi_only_preference"];
 		[lm lpConfigSetInt:wifiOnly forKey:@"wifi_only_preference"];
-		if ([self valueChangedForKey:@"wifi_only_preference"])
-			[LinphoneManager.instance setupNetworkReachabilityCallback];
 
 		LinphoneNatPolicy *LNP = linphone_core_get_nat_policy(LC);
 		
@@ -924,11 +936,7 @@
 		}
 
 		[lm lpConfigSetInt:[self integerForKey:@"use_rls_presence"] forKey:@"use_rls_presence"];
-		const MSList *lists = linphone_core_get_friends_lists(LC);
-		while (lists) {
-			linphone_friend_list_enable_subscriptions(lists->data, [self integerForKey:@"use_rls_presence"]);
-			lists = lists->next;
-		}
+		linphone_core_enable_friend_list_subscription(LC, [self integerForKey:@"use_rls_presence"]);
 
 		BOOL firstloginview = [self boolForKey:@"enable_first_login_view_preference"];
 		[lm lpConfigSetInt:firstloginview forKey:@"enable_first_login_view_preference"];
@@ -968,20 +976,29 @@
 - (void)removeAccount {
 	LinphoneProxyConfig *config = bctbx_list_nth_data(linphone_core_get_proxy_config_list(LC),
 													  [self integerForKey:@"current_proxy_config_preference"]);
-
+	
+	const MSList *lists = linphone_core_get_friends_lists(LC);
+	while (lists) {
+		linphone_friend_list_enable_subscriptions(lists->data, FALSE);
+		linphone_friend_list_update_subscriptions(lists->data);
+		lists = lists->next;
+	}
 	BOOL isDefault = (linphone_core_get_default_proxy_config(LC) == config);
 
 	const LinphoneAuthInfo *ai = linphone_proxy_config_find_auth_info(config);
 	linphone_core_remove_proxy_config(LC, config);
 	if (ai) {
-		linphone_core_remove_auth_info(LC, ai);
+		// Friend list unsubscription above is not instantanous, so give a bit of a time margin before finishing the removal of the auth info
+		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+			linphone_core_remove_auth_info(LC, ai);
+		});
 	}
 	[self setInteger:-1 forKey:@"current_proxy_config_preference"];
 
 	if (isDefault) {
 		// if we removed the default proxy config, set another one instead
 		if (linphone_core_get_proxy_config_list(LC) != NULL) {
-			linphone_core_set_default_proxy_index(LC, 0);
+			linphone_core_set_default_proxy_config(LC, (LinphoneProxyConfig *)(linphone_core_get_proxy_config_list(LC)->data));
 		}
 	}
 	[self transformLinphoneCoreToKeys];

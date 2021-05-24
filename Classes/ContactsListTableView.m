@@ -1,20 +1,20 @@
-/* ContactsTableViewController.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "ContactsListTableView.h"
@@ -44,7 +44,7 @@ NSArray *sortedAddresses;
 }
 
 - (void)onAddressBookUpdate:(NSNotification *)k {
-	if (!_ongoing && (PhoneMainView.instance.currentView == ContactsListView.compositeViewDescription)) {
+	if ((!_ongoing && (PhoneMainView.instance.currentView == ContactsListView.compositeViewDescription)) || (IPAD && PhoneMainView.instance.currentView == ContactDetailsView.compositeViewDescription)) {
 		[self loadData];
 	}
 }
@@ -126,7 +126,7 @@ static int ms_strcmpfuz(const char *fuzzy_word, const char *sentence) {
 			return name2ASCII;
 		}
 	}
-	return nil;
+	return NSLocalizedString(@"Unknown", nil);
 }
 
 - (void)loadData {
@@ -186,7 +186,7 @@ static int ms_strcmpfuz(const char *fuzzy_word, const char *sentence) {
 				  add = (contact.emails.count > 0);
 				}
 
-				NSMutableString *name = [self displayNameForContact:contact] ? [[NSMutableString alloc] initWithString: [self displayNameForContact:contact]] : nil;
+				NSMutableString *name = [[NSMutableString alloc] initWithString: [self displayNameForContact:contact]];
 				if (add && name != nil) {
 					NSString *firstChar = [[name substringToIndex:1] uppercaseString];
 					// Put in correct subAr
@@ -361,6 +361,7 @@ static int ms_strcmpfuz(const char *fuzzy_word, const char *sentence) {
 	[cell.avatarImage setImage:image bordered:NO withRoundedRadius:YES];
 	[cell setContact:contact];
 	[super accessoryForCell:cell atPath:indexPath];
+	cell.contentView.userInteractionEnabled = false;
 
 	return cell;
 }
@@ -368,7 +369,11 @@ static int ms_strcmpfuz(const char *fuzzy_word, const char *sentence) {
 - (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
 	CGRect frame = CGRectMake(0, 0, tableView.frame.size.width, tableView.sectionHeaderHeight);
 	UIView *tempView = [[UIView alloc] initWithFrame:frame];
-	tempView.backgroundColor = [UIColor whiteColor];
+	if (@available(iOS 13, *)) {
+		tempView.backgroundColor = [UIColor systemBackgroundColor];
+	} else {
+		tempView.backgroundColor = [UIColor whiteColor];
+	}
 
 	UILabel *tempLabel = [[UILabel alloc] initWithFrame:frame];
 	tempLabel.backgroundColor = [UIColor clearColor];
@@ -394,6 +399,10 @@ static int ms_strcmpfuz(const char *fuzzy_word, const char *sentence) {
 		if (([ContactSelection getSelectionMode] != ContactSelectionModeEdit) || !([ContactSelection getAddAddress])) {
 			[view setContact:contact];
 		} else {
+			if (IPAD) {
+				[view resetContact];
+				view.isAdding = FALSE;
+			}
 			[view editContact:contact address:[ContactSelection getAddAddress]];
 		}
 	}
@@ -404,27 +413,35 @@ static int ms_strcmpfuz(const char *fuzzy_word, const char *sentence) {
 	 forRowAtIndexPath:(NSIndexPath *)indexPath {
 	if (editingStyle == UITableViewCellEditingStyleDelete) {
 		[NSNotificationCenter.defaultCenter removeObserver:self];
-		[tableView beginUpdates];
+		
+		NSString *msg = NSLocalizedString(@"Do you want to delete selected contact?\nIt will also be deleted from your phone's address book.", nil);
+		[UIConfirmationDialog ShowWithMessage:msg
+					cancelMessage:nil
+					confirmMessage:nil
+					onCancelClick:nil
+					onConfirmationClick:^() {
+						[tableView beginUpdates];
 
-		NSString *firstChar = [addressBookMap keyAtIndex:[indexPath section]];
-		NSMutableArray *subAr = [addressBookMap objectForKey:firstChar];
-		Contact *contact = subAr[indexPath.row];
-		[subAr removeObjectAtIndex:indexPath.row];
-		if (subAr.count == 0) {
-			[addressBookMap removeObjectForKey:firstChar];
-			[tableView deleteSections:[NSIndexSet indexSetWithIndex:indexPath.section]
-					 withRowAnimation:UITableViewRowAnimationFade];
-		}
-		UIContactCell* cell = [self.tableView cellForRowAtIndexPath:indexPath];
-		[cell setContact:NULL];
-		[[LinphoneManager.instance fastAddressBook] deleteContact:contact];
-		[tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
-		[tableView endUpdates];
+						NSString *firstChar = [addressBookMap keyAtIndex:[indexPath section]];
+						NSMutableArray *subAr = [addressBookMap objectForKey:firstChar];
+						Contact *contact = subAr[indexPath.row];
+						[subAr removeObjectAtIndex:indexPath.row];
+						if (subAr.count == 0) {
+							[addressBookMap removeObjectForKey:firstChar];
+							[tableView deleteSections:[NSIndexSet indexSetWithIndex:indexPath.section]
+							withRowAnimation:UITableViewRowAnimationFade];
+						}
+						UIContactCell* cell = [self.tableView cellForRowAtIndexPath:indexPath];
+						[cell setContact:NULL];
+						[[LinphoneManager.instance fastAddressBook] deleteContact:contact];
+						[tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
+						[tableView endUpdates];
 
-		[NSNotificationCenter.defaultCenter	addObserver:self selector:@selector(onAddressBookUpdate:)
-                           name:kLinphoneAddressBookUpdate
-                         object:nil];
-	   	[self loadData];
+						[NSNotificationCenter.defaultCenter	addObserver:self selector:@selector(onAddressBookUpdate:)
+											name:kLinphoneAddressBookUpdate
+											object:nil];
+						[self loadData];
+					}];
 	}
 }
 

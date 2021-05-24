@@ -1,10 +1,21 @@
-//
-//  AssistantLinkView.m
-//  linphone
-//
-//  Created by Gautier Pelloux-Prayer on 29/08/16.
-//
-//
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
+ *
+ * This file is part of linphone-iphone
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #import <CoreTelephony/CTCarrier.h>
 #import <CoreTelephony/CTTelephonyNetworkInfo.h>
@@ -41,6 +52,7 @@
 
 	_linkAccountView.hidden = _activateSMSView.userInteractionEnabled = NO;
 	_activateSMSView.hidden = _linkAccountView.userInteractionEnabled = YES;
+	[self fitScrollContentSize];
 
 	if (!account_creator) {
 		account_creator = linphone_account_creator_new(
@@ -101,6 +113,19 @@
 	}
 	account_creator = NULL;
 	[super viewDidDisappear:animated];
+}
+
+- (void)fitScrollContentSize {
+	// make view scrollable only if next button is too away
+	CGRect viewframe = _linkAccountView.frame;
+	if (UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])) {
+		viewframe.size.height += 60;
+	}
+	[_linkAccountView  setContentSize:viewframe.size];
+}
+
+- (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
+	[self fitScrollContentSize];
 }
 
 #pragma mark - UICompositeViewDelegate Functions
@@ -258,7 +283,7 @@ void assistant_activate_phone_number_link(LinphoneAccountCreator *creator, Linph
 }
 
 - (IBAction)onDialerClick:(id)sender {
-	[PhoneMainView.instance popToView:DialerView.compositeViewDescription];
+	[PhoneMainView.instance popCurrentView];
 }
 
 - (IBAction)onPhoneNumberDisclosureClick:(id)sender {
@@ -278,6 +303,10 @@ void assistant_activate_phone_number_link(LinphoneAccountCreator *creator, Linph
 														  handler:^(UIAlertAction * action) {}];
 	[errView addAction:defaultAction];
 	[self presentViewController:errView animated:YES completion:nil];
+}
+
+- (IBAction)onMaybeLater:(id)sender {
+	[PhoneMainView.instance popToView:DialerView.compositeViewDescription];
 }
 
 #pragma mark - select country delegate

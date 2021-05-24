@@ -1,25 +1,24 @@
-/* ChatTableViewController.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "ChatsListTableView.h"
 #import "UIChatCell.h"
-
 #import "FileTransferDelegate.h"
 
 #import "linphone/linphonecore.h"
@@ -115,6 +114,9 @@ static int sorted_history_comparison(LinphoneChatRoom *to_insert, LinphoneChatRo
 		if (idx != -1) {
 			NSIndexPath *indexPath = [NSIndexPath indexPathForRow:idx inSection:0];
 			[self.tableView selectRowAtIndexPath:indexPath animated:NO scrollPosition:UITableViewScrollPositionNone];
+		} else if ([LinphoneManager.instance lpConfigBoolForKey:@"create_chat" withDefault:FALSE]) {
+		// if create chat, show the empty chat
+			[LinphoneManager.instance lpConfigSetBool:FALSE forKey:@"create_chat"];
 		} else if (![self selectFirstRow]) {
 			ChatConversationCreateView *view = VIEW(ChatConversationCreateView);
 			view.tableController.notFirstTime = FALSE;
@@ -209,10 +211,17 @@ static int sorted_history_comparison(LinphoneChatRoom *to_insert, LinphoneChatRo
 	if (cell == nil)
 		cell = [[UIChatCell alloc] initWithIdentifier:kCellId];
 
+	if ([[UIApplication sharedApplication] applicationState] == UIApplicationStateBackground) {
+		return cell;
+	}
 
 	[cell setChatRoom:(LinphoneChatRoom *)bctbx_list_nth_data(_data, (int)[indexPath row])];
 	[super accessoryForCell:cell atPath:indexPath];
 	return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(nonnull NSIndexPath *)indexPath {
+    return 86.0;
 }
 
 #pragma mark - UITableViewDelegate Functions
