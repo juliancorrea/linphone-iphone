@@ -1,20 +1,20 @@
-/* SettingsViewController.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "SettingsView.h"
@@ -35,8 +35,8 @@
 #ifdef DEBUG
 @interface UIDevice (debug)
 
-- (void)_setBatteryLevel:(float)level;
-- (void)_setBatteryState:(int)state;
+- (void)setBatteryLevel:(float)level;
+- (void)setBatteryState:(int)state;
 
 @end
 #endif
@@ -196,18 +196,23 @@
 - (IASKSettingsReader *)settingsReader {
 	IASKSettingsReader *r = [super settingsReader];
 	NSMutableArray *dataSource = [NSMutableArray arrayWithArray:[r dataSource]];
-	for (int i = 0; i < [dataSource count]; ++i) {
-		NSMutableArray *specifiers = [NSMutableArray arrayWithArray:[dataSource objectAtIndex:i]];
-		for (int j = 0; j < [specifiers count]; ++j) {
-			id sp = [specifiers objectAtIndex:j];
-			if ([sp isKindOfClass:[IASKSpecifier class]]) {
-				sp = [SettingsView filterSpecifier:sp];
+	if ([[UIApplication sharedApplication] applicationState] != UIApplicationStateBackground) {
+		for (int i = 0; i < [dataSource count]; ++i) {
+			NSMutableArray *specifiers = [NSMutableArray arrayWithArray:[dataSource objectAtIndex:i]];
+			for (int j = 0; j < [specifiers count]; ++j) {
+				id sp = [specifiers objectAtIndex:j];
+				if ([sp isKindOfClass:[IASKSpecifier class]]) {
+					sp = [SettingsView filterSpecifier:sp];
+				}
+				[specifiers replaceObjectAtIndex:j withObject:sp];
 			}
-			[specifiers replaceObjectAtIndex:j withObject:sp];
-		}
 
-		[dataSource replaceObjectAtIndex:i withObject:specifiers];
+			[dataSource replaceObjectAtIndex:i withObject:specifiers];
+		}
+	} else {
+		NSLog(@"Application is in background, linphonecore is off, skiping filter specifier.");
 	}
+	
 	[r setDataSource:dataSource];
 	return r;
 }
@@ -492,6 +497,9 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 		removeFromHiddenKeys = debugEnabled;
 		[keys addObject:@"send_logs_button"];
 		[keys addObject:@"reset_logs_button"];
+		if ([LinphoneManager.instance lpConfigBoolForKey:@"send_db"]) {
+			[keys addObject:@"send_db_button"];
+		}
 		[Log enableLogs:debugLevel];
 		[LinphoneManager.instance lpConfigSetInt:debugLevel forKey:@"debugenable_preference"];
 	} else if ([@"account_mandatory_advanced_preference" compare:notif.object] == NSOrderedSame) {
@@ -510,7 +518,13 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 		removeFromHiddenKeys = [video_preset isEqualToString:@"custom"];
 		[keys addObject:@"video_preferred_fps_preference"];
 		[keys addObject:@"download_bandwidth_preference"];
-	}
+    } else if ([@"auto_download_mode" compare:notif.object] == NSOrderedSame) {
+        NSString *download_mode = [notif.userInfo objectForKey:@"auto_download_mode"];
+        removeFromHiddenKeys = [download_mode isEqualToString:@"Customize"];
+        if (removeFromHiddenKeys)
+            [LinphoneManager.instance lpConfigSetInt:10000000 forKey:@"auto_download_incoming_files_max_size"];
+        [keys addObject:@"auto_download_incoming_files_max_size"];
+    }
 
 	for (NSString *key in keys) {
 		if (removeFromHiddenKeys)
@@ -598,10 +612,6 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 		[hiddenKeys addObject:@"media_encryption_preference"];
 	}
 
-	if (!linphone_core_lime_available(LC)) {
-		[hiddenKeys addObject:@"use_lime_preference"];
-	}
-
 #ifndef DEBUG
 	[hiddenKeys addObject:@"debug_actions_group"];
 	[hiddenKeys addObject:@"release_button"];
@@ -616,6 +626,10 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 	if (!debugEnabled) {
 		[hiddenKeys addObject:@"send_logs_button"];
 		[hiddenKeys addObject:@"reset_logs_button"];
+	}
+
+	if (![LinphoneManager.instance lpConfigBoolForKey:@"send_db"]) {
+		[hiddenKeys addObject:@"send_db_button"];
 	}
 
 	[hiddenKeys addObject:@"playback_gain_preference"];
@@ -760,6 +774,14 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 	if ([[UIDevice currentDevice].systemVersion floatValue] < 8) {
 		[hiddenKeys addObject:@"repeat_call_notification_preference"];
 	}
+	
+	if (![lm lpConfigBoolForKey:@"accept_early_media" inSection:@"app"]) {
+		[hiddenKeys addObject:@"pref_accept_early_media_preference"];
+	}
+
+    if (![[lm lpConfigStringForKey:@"auto_download_mode"] isEqualToString:@"Customize"]) {
+        [hiddenKeys addObject:@"auto_download_incoming_files_max_size"];
+    }
 
 	return hiddenKeys;
 }
@@ -781,7 +803,7 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 }
 
 - (void)settingsViewControllerWillAppear:(IASKAppSettingsViewController *)sender {
-	_backButton.hidden = (sender.file == nil || [sender.file isEqualToString:@"Root"]);
+	isRoot = (sender.file == nil || [sender.file isEqualToString:@"Root"]);
 	_titleLabel.text = sender.title;
 
 	// going to account: fill account specific info
@@ -808,8 +830,8 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 		[PhoneMainView.instance.mainViewController
 			clearCache:[NSArray arrayWithObject:[PhoneMainView.instance currentView]]];
 	} else if ([key isEqual:@"battery_alert_button"]) {
-		[[UIDevice currentDevice] _setBatteryState:UIDeviceBatteryStateUnplugged];
-		[[UIDevice currentDevice] _setBatteryLevel:0.01f];
+		[[UIDevice currentDevice] setBatteryState:UIDeviceBatteryStateUnplugged];
+		[[UIDevice currentDevice] setBatteryLevel:0.01f];
 		[NSNotificationCenter.defaultCenter postNotificationName:UIDeviceBatteryLevelDidChangeNotification object:self];
 	} else if ([key isEqual:@"flush_images_button"]) {
 		const MSList *rooms = linphone_core_get_chat_rooms(LC);
@@ -931,6 +953,7 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 																								completion:nil];
 																			   return;
 																		   }
+																		   linphone_account_creator_set_algorithm(account_creator, "");
 																		   linphone_account_creator_set_username(account_creator, linphone_auth_info_get_username(ai));
 																		   if (linphone_auth_info_get_passwd(ai) && !(strcmp(linphone_auth_info_get_passwd(ai),"") == 0)) {
 																			   linphone_account_creator_set_password(account_creator, linphone_auth_info_get_passwd(ai));
@@ -1016,6 +1039,8 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 		[errView addAction:defaultAction];
 		[errView addAction:continueAction];
 		[self presentViewController:errView animated:YES completion:nil];
+	} else if ([key isEqual:@"send_db_button"]) {
+		 [self sendEmailWithPrivacyAttachments];
 	}
 }
 
@@ -1046,11 +1071,11 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 	if ([LinphoneManager.instance lpConfigBoolForKey:@"send_logs_include_linphonerc_and_chathistory"]) {
 		// retrieve linphone rc
 		[attachments
-			addObject:@[ [LinphoneManager documentFile:@"linphonerc"], @"text/plain", @"linphone-configuration.rc" ]];
+			addObject:@[ [LinphoneManager preferenceFile:@"linphonerc"], @"text/plain", @"linphone-configuration.rc" ]];
 
 		// retrieve historydb
 		[attachments addObject:@[
-			[LinphoneManager documentFile:@"linphone_chats.db"],
+			[LinphoneManager dataFile:@"linphone_chats.db"],
 			@"application/x-sqlite3",
 			@"linphone-chats-history.db"
 		]];
@@ -1072,6 +1097,49 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 
 	[self emailAttachments:attachments];
 }
+
+- (void)sendEmailWithPrivacyAttachments {
+	NSMutableArray *attachments = [[NSMutableArray alloc] initWithCapacity:4];
+
+	// retrieve historydb
+	[attachments addObject:@[
+		[LinphoneManager dataFile:@"linphone_chats.db"],
+		@"application/db",
+		@"linphone-chats-history.db"
+	]];
+	[attachments addObject:@[
+		[LinphoneManager dataFile:@"zrtp_secrets"],
+		@"application/zrtp",
+		@"zrtp_secrets"
+	]];
+	[attachments addObject:@[
+		[LinphoneManager dataFile:@"linphone.db"],
+		@"application/db",
+		@"linphone.db"
+	]];
+	[attachments addObject:@[
+		[LinphoneManager dataFile:@"x3dh.c25519.sqlite3"],
+		@"application/db",
+		@"x3dh.c25519.sqlite3"
+	]];
+
+	if (attachments.count == 0) {
+		UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Cannot send files", nil)
+																		 message:NSLocalizedString(@"Nothing could be collected from your application, aborting now.", nil)
+																  preferredStyle:UIAlertControllerStyleAlert];
+		
+		UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"Cancel", nil)
+																style:UIAlertActionStyleDefault
+															  handler:^(UIAlertAction * action) {}];
+		
+		[errView addAction:defaultAction];
+		[self presentViewController:errView animated:YES completion:nil];
+		return;
+	}
+
+	[self emailAttachments:attachments];
+}
+
 - (void)emailAttachments:(NSArray *)attachments {
 	NSString *error = nil;
 #if TARGET_IPHONE_SIMULATOR
@@ -1138,6 +1206,11 @@ void update_hash_cbs(LinphoneAccountCreator *creator, LinphoneAccountCreatorStat
 }
 
 - (IBAction)onBackClick:(id)sender {
-	[_settingsController.navigationController popViewControllerAnimated:YES];
+	if  (isRoot) {
+		[_settingsController.navigationController popViewControllerAnimated:NO];
+		[PhoneMainView.instance popCurrentView];
+	} else {
+		[_settingsController.navigationController popViewControllerAnimated:YES];
+	}
 }
 @end

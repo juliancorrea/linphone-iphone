@@ -1,20 +1,20 @@
-/* UIChatCell.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "UIChatCell.h"
@@ -81,6 +81,8 @@
 		_addressLabel.text = [NSString stringWithUTF8String:subject ?: LINPHONE_DUMMY_SUBJECT];
 		[_avatarImage setImage:[UIImage imageNamed:@"chat_group_avatar.png"] bordered:NO withRoundedRadius:YES];
 	}
+    // TODO update security image when security level changed
+    [_securityImage setImage:[FastAddressBook imageForSecurityLevel:linphone_chat_room_get_security_level(chatRoom)]];
 
 	_chatLatestTimeLabel.text = [LinphoneUtils timeToString:linphone_chat_room_get_last_update_time(chatRoom) withFormat:LinphoneDateChatList];
 
@@ -92,8 +94,8 @@
             NSString *text = [UIChatBubbleTextCell TextMessageForChat:last_msg];
             if (outgoing) {
                 // shorten long messages
-                if ([text length] > 50)
-                    text = [[text substringToIndex:50] stringByAppendingString:@"[...]"];
+                /*if ([text length] > 50)
+                    text = [[text substringToIndex:50] stringByAppendingString:@"[...]"];*/
                 _chatContentLabel.attributedText = nil;
                 _chatContentLabel.text = text;
             } else {
@@ -105,10 +107,10 @@
                 UIFont *boldFont = [UIFont boldSystemFontOfSize:fontSize];
                 NSMutableAttributedString *boldText = [[NSMutableAttributedString alloc] initWithString:name attributes:@{ NSFontAttributeName : boldFont }];
                 text = [@" : " stringByAppendingString:text];
-                NSString *fullText = [name stringByAppendingString:text];
-                if ([fullText length] > 50) {
+                //NSString *fullText = [name stringByAppendingString:text];
+                /*if ([fullText length] > 50) {
                     text = [[text substringToIndex: (50 - [name length])] stringByAppendingString:@"[...]"];
-                }
+                }*/
                 [boldText appendAttributedString:[[NSAttributedString alloc] initWithString:text]];
                 _chatContentLabel.text = nil;
                 _chatContentLabel.attributedText = boldText;
@@ -119,24 +121,24 @@
             if (outgoing && (state == LinphoneChatMessageStateDeliveredToUser || state == LinphoneChatMessageStateDisplayed || state == LinphoneChatMessageStateNotDelivered || state == LinphoneChatMessageStateFileTransferError)) {
                 [self displayImdmStatus:state];
                 CGRect newFrame = _chatContentLabel.frame;
-                newFrame.origin.x = 80;
+                newFrame.origin.x = 89;
                 _chatContentLabel.frame = newFrame;
             } else {
                 // We displace the message 20 pixels to the left
                 [_imdmIcon setHidden:TRUE];
                 CGRect newFrame = _chatContentLabel.frame;
-                newFrame.origin.x = 60;
+                newFrame.origin.x = 69;
                 _chatContentLabel.frame = newFrame;
             }
         } else {
             NSString *text = [[FastAddressBook displayNameForAddress:linphone_chat_message_get_from_address(last_msg)]
                               stringByAppendingFormat:@" : %@", [UIChatBubbleTextCell TextMessageForChat:last_msg]];
             // shorten long messages
-            if ([text length] > 50)
-                text = [[text substringToIndex:50] stringByAppendingString:@"[...]"];
+            /*if ([text length] > 50)
+                text = [[text substringToIndex:50] stringByAppendingString:@"[...]"];*/
             [_imdmIcon setHidden:TRUE];
             CGRect newFrame = _chatContentLabel.frame;
-            newFrame.origin.x = 60;
+            newFrame.origin.x = 69;
             _chatContentLabel.frame = newFrame;
             _chatContentLabel.text = text;
         }
@@ -156,7 +158,7 @@
 	} else {
 		[_unreadCountView stopAnimating:YES];
 	}
-	UIFont *addressFont = (count <= 0) ? [UIFont systemFontOfSize:25] : [UIFont boldSystemFontOfSize:25];
+	UIFont *addressFont = (count <= 0) ? [UIFont systemFontOfSize:21] : [UIFont boldSystemFontOfSize:21];
 	_addressLabel.font = addressFont;
 }
 
@@ -165,6 +167,9 @@
 }
 
 - (void)setEditing:(BOOL)editing animated:(BOOL)animated {
+	if ([[UIApplication sharedApplication] applicationState] == UIApplicationStateBackground) {
+		return;
+	}
 	if (animated) {
 		[UIView beginAnimations:nil context:nil];
 		[UIView setAnimationDuration:0.3];

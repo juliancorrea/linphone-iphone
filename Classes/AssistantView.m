@@ -1,21 +1,20 @@
-
-/* AssistantViewController.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "linphone/linphonecore_utils.h"
@@ -63,6 +62,7 @@ typedef enum _ViewElement {
 		historyViews = [[NSMutableArray alloc] init];
 		currentView = nil;
 		mustRestoreView = NO;
+		acceptTerms = NO;
 	}
 	return self;
 }
@@ -120,12 +120,28 @@ static UICompositeViewDescription *compositeDescription = nil;
 	_outgoingView = DialerView.compositeViewDescription;
     _qrCodeButton.hidden = !ENABLE_QRCODE;
 	[self resetLiblinphone:FALSE];
+	[self enableWelcomeViewButtons];
+	NSString *message = NSLocalizedString(@"I accept Belledonne Communications’ terms of use and privacy policy", nil);
+	NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc] initWithString:message attributes:@{NSForegroundColorAttributeName : [UIColor systemGrayColor]}];
+	[attributedString addAttribute:NSLinkAttributeName
+						 value:@"https://www.linphone.org/general-terms"
+						 range:[[attributedString string] rangeOfString:NSLocalizedString(@"terms of use", nil)]];
+	[attributedString addAttribute:NSLinkAttributeName
+						 value:@"https://www.linphone.org/privacy-policy"
+						 range:[[attributedString string] rangeOfString:NSLocalizedString(@"privacy policy", nil)]];
+
+	NSDictionary *linkAttributes = @{NSForegroundColorAttributeName : [UIColor redColor],
+									 NSUnderlineStyleAttributeName : @(NSUnderlineStyleSingle)};
+
+	_acceptText.linkTextAttributes = linkAttributes;
+	_acceptText.attributedText = attributedString;
+	_acceptText.editable = NO;
+	_acceptText.delegate = self;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
 	[super viewWillDisappear:animated];
 	[NSNotificationCenter.defaultCenter removeObserver:self];
-	
 }
 
 - (void)fitContent {
@@ -142,6 +158,11 @@ static UICompositeViewDescription *compositeDescription = nil;
 
 - (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
 	[self fitContent];
+}
+
+#pragma mark - UITextViewDelegate
+- (BOOL)textView:(UITextView *)textView shouldInteractWithURL:(NSURL *)URL inRange:(NSRange)characterRange interaction:(UITextItemInteraction)interaction {
+	return [[UIApplication sharedApplication] openURL:URL];
 }
 
 #pragma mark - Utils
@@ -170,11 +191,19 @@ static UICompositeViewDescription *compositeDescription = nil;
 													 assistant_recover_phone_account);
 	linphone_account_creator_cbs_set_is_account_linked(linphone_account_creator_get_callbacks(account_creator),
 													   assistant_is_account_linked);
+	linphone_account_creator_cbs_set_login_linphone_account(linphone_account_creator_get_callbacks(account_creator), assistant_login_linphone_account);
 	
 }
 - (void)loadAssistantConfig:(NSString *)rcFilename {
-	linphone_config_load_from_xml_file(linphone_core_get_config(LC),
+	linphone_core_load_config_from_xml(LC,
 									   [LinphoneManager bundleFile:rcFilename].UTF8String);
+	if (account_creator) {
+		// Below two settings are applied to account creator when it is built.
+		// Reloading Core config after won't change the account creator configuration,
+		// hence the manual reload
+		linphone_account_creator_set_domain(account_creator, [[LinphoneManager.instance lpConfigStringForKey:@"domain" inSection:@"assistant" withDefault:@""] UTF8String]);
+		linphone_account_creator_set_algorithm(account_creator, [[LinphoneManager.instance lpConfigStringForKey:@"algorithm" inSection:@"assistant" withDefault:@""] UTF8String]);
+	}
 	[self changeView:nextView back:FALSE animation:TRUE];
 }
 
@@ -262,12 +291,18 @@ static UICompositeViewDescription *compositeDescription = nil;
 	return NSLocalizedString(@"Unknown error, please try again later.", nil);
 }
 
+- (void)enableWelcomeViewButtons {
+	UIImage *image = acceptTerms ? [UIImage imageNamed:@"checkbox_checked.png"] : [UIImage imageNamed:@"checkbox_unchecked.png"];
+	[_acceptButton setImage:image forState:UIControlStateNormal];
+	_gotoRemoteProvisioningButton.enabled = _gotoLinphoneLoginButton.enabled = _gotoCreateAccountButton.enabled = _gotoLoginButton.enabled = acceptTerms;
+}
+
 + (NSString *)errorForLinphoneAccountCreatorPhoneNumberStatus:(LinphoneAccountCreatorPhoneNumberStatus)status {
 	switch (status) {
 		case LinphoneAccountCreatorPhoneNumberStatusTooShort: /**< Phone number too short */
-			return NSLocalizedString(@"Your country code is too short.", nil);
+			return NSLocalizedString(@"Your phone number is too short.", nil);
 		case LinphoneAccountCreatorPhoneNumberStatusTooLong: /**< Phone number too long */
-			return NSLocalizedString(@"Your country code is too long.", nil);
+			return NSLocalizedString(@"Your phone number is too long.", nil);
 			return nil; /* this is not an error, just user has to finish typing */
 		case LinphoneAccountCreatorPhoneNumberStatusInvalidCountryCode: /**< Country code invalid */
 			return NSLocalizedString(@"Your country code is invalid.", nil);
@@ -420,6 +455,8 @@ static UICompositeViewDescription *compositeDescription = nil;
 		[[LinphoneManager.instance fastAddressBook] fetchContactsInBackGroundThread];
 	} else
 		[self displayAssistantConfigurationError];
+	
+	[LinphoneManager.instance migrationPerAccount];
 }
 
 - (void)displayAssistantConfigurationError {
@@ -465,7 +502,6 @@ static UICompositeViewDescription *compositeDescription = nil;
 
 	static BOOL placement_done = NO; // indicates if the button placement has been done in the assistant choice view
 
-	_backButton.hidden = (view == _welcomeView);
 
 	if (view == _welcomeView) {
 		BOOL show_logo = [LinphoneManager.instance lpConfigBoolForKey:@"show_assistant_logo_in_choice_view_preference"];
@@ -619,7 +655,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 
 	[self changeView:_remoteProvisioningLoginView back:FALSE animation:TRUE];
 
-	linphone_proxy_config_destroy(default_conf);
+	linphone_proxy_config_unref(default_conf);
 }
 
 - (void)resetTextFields {
@@ -707,10 +743,6 @@ static UICompositeViewDescription *compositeDescription = nil;
 				   account_creator, inputEntry.length > 0 ? inputEntry.UTF8String : NULL, prefix.UTF8String);
 			   if (s != LinphoneAccountCreatorPhoneNumberStatusOk) {
 				   linphone_account_creator_set_phone_number(account_creator, NULL, NULL);
-				   // if phone is empty and username is empty, this is wrong
-				   if (linphone_account_creator_get_username(account_creator) == NULL) {
-					   s = LinphoneAccountCreatorPhoneNumberStatusTooShort;
-				   }
 			   }
 
 			   createPhone.errorLabel.text = [AssistantView errorForLinphoneAccountCreatorPhoneNumberStatus:s];
@@ -771,11 +803,9 @@ static UICompositeViewDescription *compositeDescription = nil;
 	[url showError:NSLocalizedString(@"Invalid remote provisioning URL", nil)
 			  when:^BOOL(NSString *inputEntry) {
 				if (inputEntry.length > 0) {
-					// missing prefix will result in http:// being used
-					if ([inputEntry rangeOfString:@"://"].location == NSNotFound) {
-						inputEntry = [NSString stringWithFormat:@"http://%@", inputEntry];
-					}
-					return (linphone_core_set_provisioning_uri(LC, inputEntry.UTF8String) != 0);
+					bool isValid = linphone_core_set_provisioning_uri(LC, [self addSchemeToProvisiionninUriIMissing:inputEntry].UTF8String) != 0;
+					linphone_core_set_provisioning_uri(LC,NULL);
+					return isValid;
 				}
 				return TRUE;
 			  }];
@@ -806,6 +836,11 @@ static UICompositeViewDescription *compositeDescription = nil;
     return [components.scheme hasSuffix:@"vpabx.com.br"] || [components.scheme hasSuffix:@"virtualpabxip.com.br"];
 }
 
+
+-(NSString *) addSchemeToProvisiionninUriIMissing:(NSString *)uri {
+	// missing prefix will result in http:// being used
+	return [uri rangeOfString:@"://"].location == NSNotFound ? [NSString stringWithFormat:@"http://%@", uri] : uri;
+}
 
 - (void)shouldEnableNextButton {
 	BOOL invalidInputs = NO;
@@ -892,7 +927,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 		}
 		case LinphoneRegistrationFailed: {
 			_waitView.hidden = true;
-			UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Registration failure", nil)
+			UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Connection failure", nil)
 																			 message:message
 																	  preferredStyle:UIAlertControllerStyleAlert];
 			
@@ -923,8 +958,6 @@ static UICompositeViewDescription *compositeDescription = nil;
 - (void)configuringUpdate:(NSNotification *)notif {
 	LinphoneConfiguringState status = (LinphoneConfiguringState)[[notif.userInfo valueForKey:@"state"] integerValue];
 
-	_waitView.hidden = true;
-
 	switch (status) {
 		case LinphoneConfiguringSuccessful:
 			// we successfully loaded a remote provisioned config, go to dialer
@@ -943,6 +976,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 			}
 			break;
 		case LinphoneConfiguringFailed: {
+			_waitView.hidden = true;
 			NSString *error_message = [notif.userInfo valueForKey:@"message"];
 			UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Provisioning Load error", nil)
 																			 message:error_message
@@ -958,6 +992,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 		}
 
 		case LinphoneConfiguringSkipped:
+			_waitView.hidden = true;
 		default:
 			break;
 	}
@@ -966,7 +1001,7 @@ static UICompositeViewDescription *compositeDescription = nil;
 - (void)showErrorPopup:(const char *)error {
 	const char *err = error ? error : "";
 	if (strcmp(err, "ERROR_BAD_CREDENTIALS") == 0) {
-		UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Registration failure", nil)
+		UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Connection failure", nil)
 																		 message:[AssistantView StringForXMLRPCError:err]
 																  preferredStyle:UIAlertControllerStyleAlert];
 		
@@ -1053,6 +1088,10 @@ static UICompositeViewDescription *compositeDescription = nil;
 		defaultAction.accessibilityLabel = @"PopUpResp";
 		[self presentViewController:errView animated:YES completion:nil];
 	}
+	
+	// enable linphoneLoginButton if error
+	[_linphoneLoginButton setBackgroundColor:[UIColor clearColor]];
+	_linphoneLoginButton.enabled = YES;
 }
 
 - (void)isAccountUsed:(LinphoneAccountCreatorStatus)status withResp:(const char *)resp {
@@ -1170,6 +1209,18 @@ void assistant_activate_account(LinphoneAccountCreator *creator, LinphoneAccount
 	}
 }
 
+void assistant_login_linphone_account(LinphoneAccountCreator *creator, LinphoneAccountCreatorStatus status,
+								const char *resp) {
+	AssistantView *thiz = (__bridge AssistantView *)(linphone_account_creator_get_user_data(creator));
+	thiz.waitView.hidden = YES;
+	if (status == LinphoneAccountCreatorStatusRequestOk) {
+		[thiz configureProxyConfig];
+		[[NSNotificationCenter defaultCenter] postNotificationName:kLinphoneAddressBookUpdate object:NULL];
+	} else {
+		[thiz showErrorPopup:resp];
+	}
+}
+
 void assistant_is_account_activated(LinphoneAccountCreator *creator, LinphoneAccountCreatorStatus status,
 									const char *resp) {
 	AssistantView *thiz = (__bridge AssistantView *)(linphone_account_creator_get_user_data(creator));
@@ -1273,6 +1324,16 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
         _waitView.hidden = YES; \
     }); \
 
+// Change button color and wait until object finished to avoid duplicated actions
+#define ONNEWCLICKBUTTON(button, timewaitmsec, body) \
+[button setBackgroundColor:[UIColor lightGrayColor]]; \
+    _waitView.hidden = NO; \
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (timewaitmsec * NSEC_PER_MSEC)); \
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){ \
+        body \
+        [button setBackgroundColor:[UIColor clearColor]]; \
+    }); \
+
 #pragma mark - Action Functions
 
 - (IBAction)onGotoCreateAccountClick:(id)sender {
@@ -1324,8 +1385,12 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
 			((UITextField *)[self findView:ViewElement_SMSCode inView:_contentView ofType:UITextField.class])
 				.text.UTF8String);
 		if (linphone_account_creator_get_password(account_creator) == NULL &&
-				linphone_account_creator_get_ha1(account_creator) == NULL) {
+			linphone_account_creator_get_ha1(account_creator) == NULL) {
+			if ([_activationTitle.text isEqualToString:@"USE LINPHONE ACCOUNT"]) {
+				linphone_account_creator_login_linphone_account(account_creator);
+			} else {
 				linphone_account_creator_activate_account(account_creator);
+			}
 		} else {
 			NSString * language = [[NSLocale preferredLanguages] objectAtIndex:0];
 			linphone_account_creator_set_language(account_creator, [[language substringToIndex:2] UTF8String]);
@@ -1352,8 +1417,13 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
 }
 
 - (IBAction)onLinphoneLoginClick:(id)sender {
-	ONCLICKBUTTON(sender, 100, {
-        _waitView.hidden = NO;
+	// disable button after first click
+	_linphoneLoginButton.enabled = NO;
+	[_linphoneLoginButton setBackgroundColor:[UIColor lightGrayColor]];
+	_waitView.hidden = NO;
+
+	dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (100 * NSEC_PER_MSEC));
+	dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
 		((UITextField *)[self findView:ViewElement_SMSCode inView:_contentView ofType:UITextField.class]).text = @"";
 		_activationTitle.text = @"USE LINPHONE ACCOUNT";
 		if ((linphone_account_creator_get_phone_number(account_creator) != NULL) &&
@@ -1367,7 +1437,7 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
 			// if not, propose it to the user
 			linphone_account_creator_is_account_exist(account_creator);
 		}
-    });
+	});
 }
 
 - (IBAction)onLoginClick:(id)sender {
@@ -1378,36 +1448,41 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
     }
     else {
         ONCLICKBUTTON(sender, 100, {
-            _waitView.hidden = NO;
-            NSString *domain = [self findTextField:ViewElement_Domain].text;
-            NSString *username = [self findTextField:ViewElement_Username].text;
-            NSString *displayName = [self findTextField:ViewElement_DisplayName].text;
-            NSString *pwd = [self findTextField:ViewElement_Password].text;
-            LinphoneProxyConfig *config = linphone_core_create_proxy_config(LC);
-            LinphoneAddress *addr = linphone_address_new(NULL);
-            LinphoneAddress *tmpAddr = linphone_address_new([NSString stringWithFormat:@"sip:%@",domain].UTF8String);
-            linphone_address_set_username(addr, username.UTF8String);
-            linphone_address_set_port(addr, linphone_address_get_port(tmpAddr));
-            linphone_address_set_domain(addr, linphone_address_get_domain(tmpAddr));
-            if (displayName && ![displayName isEqualToString:@""]) {
-                linphone_address_set_display_name(addr, displayName.UTF8String);
-            }
-            linphone_proxy_config_set_identity_address(config, addr);
-            // set transport
-            UISegmentedControl *transports = (UISegmentedControl *)[self findView:ViewElement_Transport
-                                                                           inView:self.contentView
-                                                                           ofType:UISegmentedControl.class];
-            if (transports) {
-                NSString *type = [transports titleForSegmentAtIndex:[transports selectedSegmentIndex]];
-                linphone_proxy_config_set_route(
-                    config,
-                    [NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
-                        .UTF8String);
-                linphone_proxy_config_set_server_addr(
-                    config,
-                    [NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
-                        .UTF8String);
-            }
+			_waitView.hidden = NO;
+			NSString *domain = [self findTextField:ViewElement_Domain].text;
+			NSString *username = [self findTextField:ViewElement_Username].text;
+			NSString *displayName = [self findTextField:ViewElement_DisplayName].text;
+			NSString *pwd = [self findTextField:ViewElement_Password].text;
+			LinphoneProxyConfig *config = linphone_core_create_proxy_config(LC);
+			LinphoneAddress *addr = linphone_address_new(NULL);
+			LinphoneAddress *tmpAddr = linphone_address_new([NSString stringWithFormat:@"sip:%@",domain].UTF8String);
+			if (tmpAddr == nil) {
+				[self displayAssistantConfigurationError];
+				return;
+			}
+			
+			linphone_address_set_username(addr, username.UTF8String);
+			linphone_address_set_port(addr, linphone_address_get_port(tmpAddr));
+			linphone_address_set_domain(addr, linphone_address_get_domain(tmpAddr));
+			if (displayName && ![displayName isEqualToString:@""]) {
+				linphone_address_set_display_name(addr, displayName.UTF8String);
+			}
+			linphone_proxy_config_set_identity_address(config, addr);
+			// set transport
+			UISegmentedControl *transports = (UISegmentedControl *)[self findView:ViewElement_Transport
+																		inView:self.contentView
+																		ofType:UISegmentedControl.class];
+			if (transports) {
+				NSString *type = [transports titleForSegmentAtIndex:[transports selectedSegmentIndex]];
+				linphone_proxy_config_set_route(
+					config,
+					[NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
+						.UTF8String);
+				linphone_proxy_config_set_server_addr(
+					config,
+					[NSString stringWithFormat:@"%s;transport=%s", domain.UTF8String, type.lowercaseString.UTF8String]
+						.UTF8String);
+			}
 
             linphone_proxy_config_enable_publish(config, FALSE);
             linphone_proxy_config_enable_register(config, TRUE);
@@ -1451,9 +1526,24 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
 }
 
 - (IBAction)onRemoteProvisioningDownloadClick:(id)sender {
-	ONCLICKBUTTON(sender, 100, {
-        [_waitView setHidden:false];
-		[self resetLiblinphone:TRUE];
+	ONNEWCLICKBUTTON(sender, 100, {
+		if (number_of_configs_before > 0) {
+			// TODO remove ME when it is fixed in SDK.
+			linphone_core_set_provisioning_uri(LC, NULL);
+			UIAlertController *errView = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Provisioning Load error", nil)
+																			 message:NSLocalizedString(@"Please remove other accounts before remote provisioning.", nil)
+																	  preferredStyle:UIAlertControllerStyleAlert];
+				
+			UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"OK"
+																	style:UIAlertActionStyleDefault
+																  handler:^(UIAlertAction * action) {}];
+			
+			[errView addAction:defaultAction];
+			[self presentViewController:errView animated:YES completion:nil];
+		} else {
+			linphone_core_set_provisioning_uri(LC,  [self addSchemeToProvisiionninUriIMissing:[self findTextField:ViewElement_URL].text].UTF8String);
+			[self resetLiblinphone:TRUE];
+		}
     });
 }
 
@@ -1468,14 +1558,14 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
     [[UIDevice currentDevice] setValue:value forKey:@"orientation"];
     //[UIViewController attemptRotationToDeviceOrientation];
     AVCaptureDevice *backCamera = [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
-    if (![[NSString stringWithUTF8String:linphone_core_get_video_device(LC)] containsString:[backCamera uniqueID]]) {
+    if (![[NSString stringWithUTF8String:linphone_core_get_video_device(LC) ?: ""] containsString:[backCamera uniqueID]]) {
         
         bctbx_list_t *deviceList = linphone_core_get_video_devices_list(LC);
         NSMutableArray *devices = [NSMutableArray array];
         
         while (deviceList) {
             char *data = deviceList->data;
-            [devices addObject:[NSString stringWithUTF8String:data]];
+            if (data) [devices addObject:[NSString stringWithUTF8String:data]];
             deviceList = deviceList->next;
         }
         bctbx_list_free(deviceList);
@@ -1617,21 +1707,30 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
 			UIView *view = [historyViews lastObject];
 			[historyViews removeLastObject];
 			[self changeView:view back:TRUE animation:TRUE];
+		} else if (currentView == _welcomeView) {
+			[PhoneMainView.instance popCurrentView];
 		} else {
 			[self changeView:_welcomeView back:TRUE animation:TRUE];
 		}
+	} else {
+		[self onDialerClick:nil];
 	}
 }
 
 - (IBAction)onDialerClick:(id)sender {
-	[PhoneMainView.instance popToView:DialerView.compositeViewDescription];
-}
+		[PhoneMainView.instance popToView:DialerView.compositeViewDescription];
+	}
 
 - (IBAction)onLinkTap:(id)sender {
-	NSString *url = @"http://linphone.org/free-sip-service.html&action=recover";
+	NSString *url = @"https://subscribe.linphone.org";
 	if (![UIApplication.sharedApplication openURL:[NSURL URLWithString:url]]) {
 		LOGE(@"Failed to open %@, invalid URL", url);
 	}
+}
+
+- (IBAction)onAcceptTermsClick:(id)sender {
+	acceptTerms = !acceptTerms;
+	[self enableWelcomeViewButtons];
 }
 
 #pragma mark - select country delegate
@@ -1652,16 +1751,17 @@ void assistant_is_account_linked(LinphoneAccountCreator *creator, LinphoneAccoun
     [NSNotificationCenter.defaultCenter removeObserver:self name:kLinphoneQRCodeFound object:nil];
     dispatch_async(dispatch_get_main_queue(), ^{
         self.urlLabel.text = [notif.userInfo objectForKey:@"qrcode"];
-    });
-    if ([historyViews count] > 0) {
-        if (currentView == _qrCodeView) {
-            UIView *view = [historyViews lastObject];
-            [historyViews removeLastObject];
-            [self changeView:view back:TRUE animation:TRUE];
-        } else {
-            [self changeView:_welcomeView back:TRUE animation:TRUE];
-        }
-    }
+
+		if ([historyViews count] > 0) {
+			if (currentView == _qrCodeView) {
+				UIView *view = [historyViews lastObject];
+				[historyViews removeLastObject];
+				[self changeView:view back:TRUE animation:TRUE];
+			} else {
+				[self changeView:_welcomeView back:TRUE animation:TRUE];
+			}
+		}
+	});
 }
 
 @end

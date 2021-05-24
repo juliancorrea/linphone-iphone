@@ -1,21 +1,20 @@
-
-/* Utils.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import <UIKit/UIView.h>
@@ -72,23 +71,6 @@
     
     return assetDict;
 }
-
-/*+ (NSMutableDictionary <NSString *, PHAsset *> *)videoAssetsDictionary {
-    NSMutableDictionary <NSString *, PHAsset *> *assetDict = [NSMutableDictionary dictionary];
-    
-    PHFetchOptions *options = [[PHFetchOptions alloc] init];
-    [options setIncludeHiddenAssets:YES];
-    [options setIncludeAllBurstAssets:YES];
-    
-    PHFetchResult *fetchRes = [PHAsset fetchAssetsWithMediaType:PHAssetMediaTypeVideo options:options];
-    
-    for (PHAsset *asset in fetchRes) {
-        NSString *key = [asset valueForKey:@"filename"];
-        [assetDict setObject:asset forKey:[[key componentsSeparatedByString:@"."] firstObject]];
-    }
-    
-    return assetDict;
-}*/
 
 + (NSString *)timeToString:(time_t)time withFormat:(LinphoneDateFormat)format {
 	NSString *formatstr;
@@ -475,13 +457,13 @@
   	if (!value || [value isEqualToString:@""])
     	return NULL;
 
-  	LinphoneProxyConfig *cfg = linphone_core_get_default_proxy_config(LC);
+	LinphoneAccount *account = linphone_core_get_default_account(LC);
   	const char *normvalue;
-	normvalue = linphone_proxy_config_is_phone_number(cfg, value.UTF8String)
-	  	? linphone_proxy_config_normalize_phone_number(cfg, value.UTF8String)
+	normvalue = linphone_account_is_phone_number(account, value.UTF8String)
+	  	? linphone_account_normalize_phone_number(account, value.UTF8String)
 		: value.UTF8String;
 
-  	LinphoneAddress *addr = linphone_proxy_config_normalize_sip_uri(cfg, normvalue);
+  	LinphoneAddress *addr = linphone_account_normalize_sip_uri(account, normvalue);
   	// first try to find a friend with the given address
   	Contact *c = [FastAddressBook getContactWithAddress:addr];
 
@@ -490,11 +472,12 @@
     	const LinphonePresenceModel *m = f
 			? linphone_friend_get_presence_model_for_uri_or_tel(f, value.UTF8String)
 			: NULL;
-    	const char *contact = m ? linphone_presence_model_get_contact(m) : NULL;
+    	char *contact = m ? linphone_presence_model_get_contact(m) : NULL;
     	if (contact) {
       		LinphoneAddress *contact_addr = linphone_address_new(contact);
+			ms_free(contact);
       		if (contact_addr) {
-				linphone_address_destroy(addr);
+				linphone_address_unref(addr);
         		return contact_addr;
       		}
     	}
@@ -502,12 +485,43 @@
 
 	// since user wants to escape plus, we assume it expects to have phone
 	// numbers by default
-	if (addr && cfg) {
-		const char *username = linphone_proxy_config_get_dial_escape_plus(cfg) ? normvalue : value.UTF8String;
-		if (linphone_proxy_config_is_phone_number(cfg, username))
-			linphone_address_set_username(addr, username);
+	if (addr && account) {
+		const char *username = linphone_account_params_get_dial_escape_plus_enabled(linphone_account_get_params(account)) ? normvalue : value.UTF8String;
+		if (linphone_account_is_phone_number(account, username))
+			linphone_address_set_username(addr, linphone_account_normalize_phone_number(account, username));
 	 }
 	return addr;
+}
+
++ (NSArray *)parseRecordingName:(NSString *)filename {
+    NSString *rec = @"recording_"; //key that helps find recordings
+    NSString *subName = [filename substringFromIndex:[filename rangeOfString:rec].location]; //We remove the parent folders if they exist in the filename
+    NSArray *splitString = [subName componentsSeparatedByString:@"_"];
+    //splitString: first element is the 'recording' prefix, last element is the date with the "E-d-MMM-yyyy-HH-mm-ss" format.
+    NSString *name = [[splitString subarrayWithRange:NSMakeRange(1, [splitString count] -2)] componentsJoinedByString:@""];
+    NSDateFormatter *format = [[NSDateFormatter alloc] init];
+    [format setDateFormat:@"E-d-MMM-yyyy-HH-mm-ss"];
+    NSString *dateWithMkv = [splitString objectAtIndex:[splitString count]-1]; //this will be in the form "E-d-MMM-yyyy-HH-mm-ss.mkv", we have to delete the extension
+    NSDate *date = [format dateFromString:[dateWithMkv substringToIndex:[dateWithMkv length] - 4]];
+    NSArray *res = [NSArray arrayWithObjects:name, date, nil];
+    return res;
+}
+
++ (UIAlertController *)networkErrorView {
+    UIAlertController *errView =
+    [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Network Error", nil)
+                                        message:NSLocalizedString(@"There is no network connection available, "
+                                                                  @"enable WIFI or WWAN prior to place a call",
+                                                                  nil)
+                                 preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *defaultAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil)
+                                                            style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction *action){
+                                                          }];
+    
+    [errView addAction:defaultAction];
+    return errView;
 }
 
 @end
@@ -527,6 +541,29 @@
 	floatSize = floatSize / 1024;
 
 	return ([NSString stringWithFormat:@"%1.1f GB", floatSize]);
+}
+
+@end
+
+@implementation UIImage (systemIcons)
+
++ (UIImage *)imageFromSystemBarButton:(UIBarButtonSystemItem)systemItem :(UIColor *) color {
+    // thanks to Renetik https://stackoverflow.com/a/49822488
+    UIToolbar *bar = UIToolbar.new;
+    UIBarButtonItem *buttonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:systemItem target:nil action:nil];
+    [bar setItems:@[buttonItem] animated:NO];
+    [bar snapshotViewAfterScreenUpdates:YES];
+    for (UIView *view in [(id) buttonItem view].subviews)
+        if ([view isKindOfClass:UIButton.class]) {
+            UIImage *image = [((UIButton *) view).imageView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+            UIGraphicsBeginImageContextWithOptions(image.size, NO, image.scale);
+            //[color set];
+            [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
+            image = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsEndImageContext();
+            return image;
+        }
+    return nil;
 }
 
 @end
@@ -580,17 +617,25 @@
 
 + (void)setDisplayNameLabel:(UILabel *)label forAddress:(const LinphoneAddress *)addr withAddressLabel:(UILabel*)addressLabel{
 	Contact *contact = [FastAddressBook getContactWithAddress:addr];
+	NSString *tmpAddress = nil;
+	char *uri = linphone_address_as_string_uri_only(addr);
 	if (contact) {
 		[ContactDisplay setDisplayNameLabel:label forContact:contact];
-		addressLabel.text = [NSString stringWithUTF8String:linphone_address_as_string_uri_only(addr)];
+		tmpAddress = [NSString stringWithUTF8String:uri];
 		addressLabel.hidden = FALSE;
 	} else {
 		label.text = [FastAddressBook displayNameForAddress:addr];
 		if([LinphoneManager.instance lpConfigBoolForKey:@"display_phone_only" inSection:@"app"])
 			addressLabel.hidden = TRUE;
 		else
-			addressLabel.text = [NSString stringWithUTF8String:linphone_address_as_string_uri_only(addr)];
+			tmpAddress = [NSString stringWithUTF8String:uri];
 	}
+	ms_free(uri);
+	NSRange range = [tmpAddress rangeOfString:@";"];
+	if (range.location != NSNotFound) {
+		tmpAddress = [tmpAddress substringToIndex:range.location];
+	}
+	addressLabel.text = tmpAddress;
 }
 
 

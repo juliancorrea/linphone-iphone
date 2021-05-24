@@ -1,9 +1,21 @@
-//
-//  UIChatNotifiedEventCell.m
-//  linphone
-//
-//  Created by REIS Benjamin on 30/10/2017.
-//
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
+ *
+ * This file is part of linphone-iphone
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #import <Foundation/Foundation.h>
 #import "UIChatNotifiedEventCell.h"
@@ -59,6 +71,7 @@ static const CGFloat NOTIFIED_CELL_HEIGHT = 44;
 - (void)setEvent:(LinphoneEventLog *)event {
 	_event = event;
 	NSString *eventString;
+    UIColor *eventColor = [UIColor grayColor];
 	switch (linphone_event_log_get_type(event)) {
 		case LinphoneEventLogTypeConferenceSubjectChanged: {
 			NSString *subject = [NSString stringWithUTF8String:linphone_event_log_get_subject(event) ?: LINPHONE_DUMMY_SUBJECT];
@@ -93,6 +106,47 @@ static const CGFloat NOTIFIED_CELL_HEIGHT = 44;
 			eventString = [NSString stringWithFormat:NSLocalizedString(@"You have joined the group", nil)];
 			break;
 		}
+        case LinphoneEventLogTypeConferenceSecurityEvent: {
+            LinphoneSecurityEventType type = linphone_event_log_get_security_event_type(event);
+            NSString *participant = [FastAddressBook displayNameForAddress:linphone_event_log_get_security_event_faulty_device_address(event)];
+            switch (type) {
+                case LinphoneSecurityEventTypeSecurityLevelDowngraded:
+                    if (!participant)
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"Security level decreased", nil)];
+                    else
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"Security level decreased because of %@", nil),participant];
+                    eventColor = [UIColor grayColor];
+                    break;
+                case LinphoneSecurityEventTypeParticipantMaxDeviceCountExceeded:
+                    if (!participant)
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"Max participant count exceeded", nil)];
+                    else
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"Max participant count exceeded by %@", nil),participant];
+                    eventColor = [UIColor redColor];
+                    break;
+                case LinphoneSecurityEventTypeEncryptionIdentityKeyChanged:
+                    if (!participant)
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"LIME identity key changed", nil)];
+                    else
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"LIME identity key changed for %@", nil),participant];
+                    eventColor = [UIColor redColor];
+                    break;
+                case LinphoneSecurityEventTypeManInTheMiddleDetected:
+                    if (!participant)
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"Man-in-the-middle attack detected", nil)];
+                    else
+                        eventString = [NSString stringWithFormat:NSLocalizedString(@"Man-in-the-middle attack detected for %@", nil),participant];
+                    eventColor = [UIColor redColor];
+                    break;
+                    
+                case LinphoneSecurityEventTypeNone:
+                default:
+                    break;
+            }
+            
+            break;
+        }
+
 		default:
 			return;
 	}

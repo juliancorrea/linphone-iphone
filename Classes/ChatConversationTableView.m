@@ -1,20 +1,20 @@
-/* ChatRoomTableViewController.m
+/*
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * Copyright (C) 2012  Belledonne Comunications, Grenoble, France
+ * This file is part of linphone-iphone
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #import "LinphoneManager.h"
@@ -40,16 +40,18 @@
 	[super viewWillAppear:animated];
 	self.tableView.accessibilityIdentifier = @"ChatRoom list";
     _imagesInChatroom = [NSMutableDictionary dictionary];
+	_currentIndex = 0;
 }
 
 #pragma mark -
 
 - (void)clearEventList {
-    for (NSValue *value in eventList) {
+    for (NSValue *value in totalEventList) {
         LinphoneEventLog *event = value.pointerValue;
         linphone_event_log_unref(event);
     }
     [eventList removeAllObjects];
+    [totalEventList removeAllObjects];
 }
 
 - (void)updateData {
@@ -62,23 +64,41 @@
 		? linphone_chat_room_get_history_message_events(_chatRoom, 0)
 		: linphone_chat_room_get_history_events(_chatRoom, 0);
     bctbx_list_t *head = chatRoomEvents;
-	eventList = [[NSMutableArray alloc] initWithCapacity:bctbx_list_size(chatRoomEvents)];
+    size_t listSize = bctbx_list_size(chatRoomEvents);
+	totalEventList = [[NSMutableArray alloc] initWithCapacity:listSize];
+    eventList = [[NSMutableArray alloc] initWithCapacity:MIN(listSize, BASIC_EVENT_LIST)];
+	BOOL autoDownload = (linphone_core_get_max_size_for_auto_download_incoming_files(LC) > -1);
 	while (chatRoomEvents) {
-		LinphoneEventLog *event = (LinphoneEventLog *)chatRoomEvents->data;
-		[eventList addObject:[NSValue valueWithPointer:linphone_event_log_ref(event)]];
+        LinphoneEventLog *event = (LinphoneEventLog *)chatRoomEvents->data;
+		LinphoneChatMessage *chat = linphone_event_log_get_chat_message(event);
+		// if auto_download is available and file transfer in progress, not add event now
+		if (!(autoDownload && chat && linphone_chat_message_is_file_transfer_in_progress(chat))) {
+			[totalEventList addObject:[NSValue valueWithPointer:linphone_event_log_ref(event)]];
+			if (listSize <= BASIC_EVENT_LIST) {
+				[eventList addObject:[NSValue valueWithPointer:linphone_event_log_ref(event)]];
+			}
+		}
+
 		chatRoomEvents = chatRoomEvents->next;
+        listSize -= 1;
 	}
     bctbx_list_free_with_data(head, (bctbx_list_free_func)linphone_event_log_unref);
+}
 
-	for (FileTransferDelegate *ftd in [LinphoneManager.instance fileTransferDelegates]) {
-		const LinphoneAddress *ftd_peer =
-			linphone_chat_room_get_peer_address(linphone_chat_message_get_chat_room(ftd.message));
-		const LinphoneAddress *peer = linphone_chat_room_get_peer_address(_chatRoom);
-		if (linphone_address_equal(ftd_peer, peer) && linphone_chat_message_is_outgoing(ftd.message)) {
-			LOGI(@"Appending transient upload message %p", ftd.message);
-			//TODO : eventList = bctbx_list_append(eventList, linphone_chat_message_ref(ftd.event));
-		}
-	}
+- (void)refreshData {
+    if (totalEventList.count <= eventList.count) {
+        _currentIndex = 0;
+        return;
+    }
+    
+    NSUInteger num = MIN(totalEventList.count-eventList.count, BASIC_EVENT_LIST);
+    _currentIndex = num - 1;
+    while (num) {
+        NSInteger index = totalEventList.count - eventList.count - 1;
+        [eventList insertObject:[totalEventList objectAtIndex:index] atIndex:0];
+        index -= 1;
+        num -= 1;
+    }
 }
 
 - (void)reloadData {
@@ -89,10 +109,12 @@
 
 - (void)addEventEntry:(LinphoneEventLog *)event {
 	[eventList addObject:[NSValue valueWithPointer:linphone_event_log_ref(event)]];
+    [totalEventList addObject:[NSValue valueWithPointer:linphone_event_log_ref(event)]];
 	int pos = (int)eventList.count - 1;
 	NSIndexPath *indexPath = [NSIndexPath indexPathForRow:pos inSection:0];
 	[self.tableView beginUpdates];
 	[self.tableView insertRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationFade];
+    [self.tableView reloadData];
 	[self.tableView endUpdates];
 }
 
@@ -161,8 +183,61 @@
 #pragma mark - Property Functions
 
 - (void)setChatRoom:(LinphoneChatRoom *)room {
+	if (room) {
+		_vfsEnabled = [[LinphoneManager instance] lpConfigBoolForKey:@"vfs_enabled_preference"] && (linphone_chat_room_get_capabilities(room) & LinphoneChatRoomCapabilitiesEncrypted);
+	}
+
 	_chatRoom = room;
 	[self reloadData];
+}
+
+static const int MAX_AGGLOMERATED_TIME=300;
+static const int BASIC_EVENT_LIST=15;
+
+- (BOOL)isFirstIndexInTableView:(NSIndexPath *)indexPath chat:(LinphoneChatMessage *)chat {
+    LinphoneEventLog *previousEvent = nil;
+    NSInteger indexOfPreviousEvent = indexPath.row - 1;
+    if (indexOfPreviousEvent > -1) {
+		previousEvent = [[eventList objectAtIndex:indexOfPreviousEvent] pointerValue];
+        if (linphone_event_log_get_type(previousEvent) != LinphoneEventLogTypeConferenceChatMessage) {
+			return TRUE;
+        }
+    }
+    if (!previousEvent)
+        return TRUE;
+
+    LinphoneChatMessage *previousChat = linphone_event_log_get_chat_message(previousEvent);
+    if (!linphone_address_equal(linphone_chat_message_get_from_address(previousChat), linphone_chat_message_get_from_address(chat))) {
+        return TRUE;
+    }
+    // the maximum interval between 2 agglomerated chats at 5mn
+    if ((linphone_chat_message_get_time(chat)-linphone_chat_message_get_time(previousChat)) > MAX_AGGLOMERATED_TIME) {
+        return TRUE;
+    }
+        
+    return FALSE;
+}
+
+- (BOOL)isLastIndexInTableView:(NSIndexPath *)indexPath chat:(LinphoneChatMessage *)chat {
+    LinphoneEventLog *nextEvent = nil;
+    NSInteger indexOfNextEvent = indexPath.row + 1;
+    while (!nextEvent && indexOfNextEvent < [eventList count]) {
+        LinphoneEventLog *tmp = [[eventList objectAtIndex:indexOfNextEvent] pointerValue];
+        if (linphone_event_log_get_type(tmp) == LinphoneEventLogTypeConferenceChatMessage) {
+            nextEvent = tmp;
+        }
+        ++indexOfNextEvent;
+    }
+    
+    if (!nextEvent)
+        return TRUE;
+
+    LinphoneChatMessage *nextChat = linphone_event_log_get_chat_message(nextEvent);
+    if (!linphone_address_equal(linphone_chat_message_get_from_address(nextChat), linphone_chat_message_get_from_address(chat))) {
+        return TRUE;
+    }
+    
+    return FALSE;
 }
 
 #pragma mark - UITableViewDataSource Functions
@@ -175,6 +250,12 @@
 	return eventList.count;
 }
 
+- (void)tableView:(UITableView *)tableView didEndDisplayingCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath*)indexPath {
+	if ([[cell reuseIdentifier] isEqualToString:@"UIChatBubblePhotoCell"]) {
+		[(UIChatBubbleTextCell *)cell clearEncryptedFiles];
+	}
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 	NSString *kCellId = nil;
 	LinphoneEventLog *event = [[eventList objectAtIndex:indexPath.row] pointerValue];
@@ -184,14 +265,17 @@
             kCellId = NSStringFromClass(UIChatBubblePhotoCell.class);
 		else
 			kCellId = NSStringFromClass(UIChatBubbleTextCell.class);
-        
+
+		// To use less memory and to avoid overlapping. To be improved.
 		UIChatBubbleTextCell *cell = [tableView dequeueReusableCellWithIdentifier:kCellId];
-        if (!cell) {
-			cell = [[NSClassFromString(kCellId) alloc] initWithIdentifier:kCellId];
+		cell = [[NSClassFromString(kCellId) alloc] initWithIdentifier:kCellId];
+
+		[cell setEvent:event vfsEnabled:_vfsEnabled];
+        if (chat) {
+            cell.isFirst = [self isFirstIndexInTableView:indexPath chat:chat];
+            cell.isLast = [self isLastIndexInTableView:indexPath chat:chat];
+            [cell update];
         }
-		[cell setEvent:event];
-		if (chat)
-			[cell update];
 
 		[cell setChatRoomDelegate:_chatRoomDelegate];
 		[super accessoryForCell:cell atPath:indexPath];
@@ -216,7 +300,7 @@
 	[_chatRoomDelegate tableViewIsScrolling];
 }
 
-static const CGFloat MESSAGE_SPACING_PERCENTAGE = 0.f;
+static const CGFloat MESSAGE_SPACING_PERCENTAGE = 1.f;
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
 	LinphoneEventLog *event = [[eventList objectAtIndex:indexPath.row] pointerValue];
@@ -225,21 +309,11 @@ static const CGFloat MESSAGE_SPACING_PERCENTAGE = 0.f;
         
         //If the message is followed by another one that is not from the same address, we add a little space under it
         CGFloat height = 0;
-        LinphoneEventLog *nextEvent = nil;
-        NSInteger indexOfNextEvent = indexPath.row + 1;
-        while (!nextEvent && indexOfNextEvent < [eventList count]) {
-            LinphoneEventLog *tmp = [[eventList objectAtIndex:indexOfNextEvent] pointerValue];
-            if (linphone_event_log_get_type(tmp) == LinphoneEventLogTypeConferenceChatMessage) {
-                nextEvent = tmp;
-            }
-            ++indexOfNextEvent;
-        }
-        if (nextEvent) {
-            LinphoneChatMessage *nextChat = linphone_event_log_get_chat_message(nextEvent);
-            if (!linphone_address_equal(linphone_chat_message_get_from_address(nextChat), linphone_chat_message_get_from_address(chat))) {
-                height += tableView.frame.size.height * MESSAGE_SPACING_PERCENTAGE / 100;
-            }
-        }
+        if ([self isLastIndexInTableView:indexPath chat:chat])
+            height += tableView.frame.size.height * MESSAGE_SPACING_PERCENTAGE / 100;
+        if (![self isFirstIndexInTableView:indexPath chat:chat])
+            height -= 20;
+
 		return [UIChatBubbleTextCell ViewHeightForMessage:chat withWidth:self.view.frame.size.width].height + height;
 	}
     return [UIChatNotifiedEventCell height];
@@ -248,12 +322,18 @@ static const CGFloat MESSAGE_SPACING_PERCENTAGE = 0.f;
 - (void) tableView:(UITableView *)tableView deleteRowAtIndex:(NSIndexPath *)indexPath {
 	[tableView beginUpdates];
 	LinphoneEventLog *event = [[eventList objectAtIndex:indexPath.row] pointerValue];
-	linphone_event_log_delete_from_database(event);
+	// TODO: fix workaround
+	//linphone_event_log_delete_from_database(event);
+	linphone_chat_room_delete_message(_chatRoom, linphone_event_log_get_chat_message(event));
+	NSInteger index = indexPath.row + _currentIndex + (totalEventList.count - eventList.count);
+	if (index < totalEventList.count)
+		[totalEventList removeObjectAtIndex:index];
 	[eventList removeObjectAtIndex:indexPath.row];
 
 	[tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath]
 					 withRowAnimation:UITableViewRowAnimationBottom];
 	[tableView endUpdates];
+    [self loadData];
 }
 
 - (NSArray<UITableViewRowAction *> *)tableView:(UITableView *)tableView
@@ -292,7 +372,12 @@ static const CGFloat MESSAGE_SPACING_PERCENTAGE = 0.f;
 - (void)removeSelectionUsing:(void (^)(NSIndexPath *))remover {
 	[super removeSelectionUsing:^(NSIndexPath *indexPath) {
 		LinphoneEventLog *event = [[eventList objectAtIndex:indexPath.row] pointerValue];
-		linphone_event_log_delete_from_database(event);
+		if (linphone_event_log_get_chat_message(event)) {
+			linphone_chat_room_delete_message(_chatRoom, linphone_event_log_get_chat_message(event));
+		}
+        NSInteger index = indexPath.row + _currentIndex + (totalEventList.count - eventList.count);
+        if (index < totalEventList.count)
+            [totalEventList removeObjectAtIndex:index];
 		[eventList removeObjectAtIndex:indexPath.row];
 	}];
 }
