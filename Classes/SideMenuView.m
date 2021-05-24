@@ -84,8 +84,8 @@
 			_addressLabel.text = NSLocalizedString(@"No address", nil);
 		}
 		_presenceImage.image = nil;
-	}
-    else {
+//	}
+//    else {
         _addressLabel.text = NSLocalizedString(@"No address", nil);
         _nameLabel.text = linphone_core_get_proxy_config_list(LC) ? NSLocalizedString(@"No default account", nil) : NSLocalizedString(@"No account", nil);
         _presenceImage.hidden = YES;
